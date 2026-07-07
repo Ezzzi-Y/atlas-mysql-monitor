@@ -1,5 +1,15 @@
 # routes/dashboard.py
-# Dashboard 路由 - 将在后续任务中实现
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+from fastapi.templating import Jinja2Templates
 
 router = APIRouter()
+templates = Jinja2Templates(directory="templates")
+
+
+@router.get("/")
+async def dashboard(request: Request):
+    """仪表盘页面"""
+    return templates.TemplateResponse(
+        request,
+        "dashboard.html",
+    )

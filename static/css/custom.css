@@ -1,0 +1,17 @@
+/* custom.css - Atlas MySQL Monitor 自定义样式 */
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+.warning-banner article {
+    border-color: #f97316;
+    background-color: rgba(249, 115, 22, 0.1);
+}
+
+#qpsChart,
+#connectionsChart {
+    max-height: 300px;
+}
