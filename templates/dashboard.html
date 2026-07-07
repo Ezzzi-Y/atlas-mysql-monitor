@@ -4,218 +4,574 @@
 
 {% block content %}
 <!-- 警告横幅 -->
-<div id="warning-banner" class="warning-banner" style="display: none;">
-    <article>
-        <p id="warning-message"></p>
-    </article>
+<div id="warning-banner" class="mb-6 hidden">
+    <div class="flex items-center gap-3 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
+        <span id="warning-message"></span>
+    </div>
 </div>
 
 <!-- 状态卡片 -->
-<section id="status-section">
-    <div class="grid">
-        <article>
-            <header>状态</header>
-            <p id="mysql-status">加载中...</p>
-        </article>
-        <article>
-            <header>运行时间</header>
-            <p id="mysql-uptime">--</p>
-        </article>
-        <article>
-            <header>最后采集</header>
-            <p id="last-update">--</p>
-        </article>
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
+    <!-- MySQL 状态 -->
+    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+        <div class="flex items-center justify-between px-5 py-4">
+            <span class="text-sm font-medium text-muted-foreground">MySQL 状态</span>
+            <i data-lucide="activity" class="w-4 h-4 text-muted-foreground"></i>
+        </div>
+        <div class="px-5 pb-4">
+            <div class="flex items-center gap-2.5">
+                <span id="status-dot" class="w-2 h-2 rounded-full bg-muted-foreground"></span>
+                <span id="mysql-status" class="text-sm font-medium">加载中...</span>
+            </div>
+        </div>
     </div>
-</section>
+
+    <!-- 运行时间 -->
+    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+        <div class="flex items-center justify-between px-5 py-4">
+            <span class="text-sm font-medium text-muted-foreground">运行时间</span>
+            <i data-lucide="clock" class="w-4 h-4 text-muted-foreground"></i>
+        </div>
+        <div class="px-5 pb-4">
+            <span id="mysql-uptime" class="text-2xl font-bold tracking-tight">--</span>
+        </div>
+    </div>
+
+    <!-- 最后采集 -->
+    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+        <div class="flex items-center justify-between px-5 py-4">
+            <span class="text-sm font-medium text-muted-foreground">最后采集</span>
+            <i data-lucide="refresh-cw" class="w-4 h-4 text-muted-foreground"></i>
+        </div>
+        <div class="px-5 pb-4">
+            <span id="last-update" class="text-2xl font-bold tracking-tight">--</span>
+        </div>
+    </div>
+</div>
 
 <!-- 指标卡片 -->
-<section id="metrics-cards">
-    <div class="grid">
-        <article>
-            <header>连接数</header>
-            <p id="threads-connected" class="metric-value">--</p>
-        </article>
-        <article>
-            <header>活跃线程</header>
-            <p id="threads-running" class="metric-value">--</p>
-        </article>
-        <article>
-            <header>慢查询</header>
-            <p id="slow-queries" class="metric-value">--</p>
-        </article>
-        <article>
-            <header>总 QPS</header>
-            <p id="total-qps" class="metric-value">--</p>
-        </article>
+<div class="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-6">
+    <!-- 连接数 -->
+    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+        <div class="flex items-center justify-between px-5 pt-4 pb-2">
+            <span class="text-sm font-medium text-muted-foreground">连接数</span>
+            <div class="flex items-center gap-1.5" id="connections-badge">
+                <i data-lucide="trending-up" class="w-3 h-3"></i>
+                <span class="text-xs font-medium">--</span>
+            </div>
+        </div>
+        <div class="px-5 pb-4">
+            <span id="threads-connected" class="text-2xl font-bold tracking-tight">--</span>
+        </div>
     </div>
-</section>
+
+    <!-- 活跃线程 -->
+    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+        <div class="flex items-center justify-between px-5 pt-4 pb-2">
+            <span class="text-sm font-medium text-muted-foreground">活跃线程</span>
+            <div class="flex items-center gap-1.5" id="running-badge">
+                <i data-lucide="trending-up" class="w-3 h-3"></i>
+                <span class="text-xs font-medium">--</span>
+            </div>
+        </div>
+        <div class="px-5 pb-4">
+            <span id="threads-running" class="text-2xl font-bold tracking-tight">--</span>
+        </div>
+    </div>
+
+    <!-- 慢查询 -->
+    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+        <div class="flex items-center justify-between px-5 pt-4 pb-2">
+            <span class="text-sm font-medium text-muted-foreground">慢查询</span>
+            <div class="flex items-center gap-1.5" id="slow-badge">
+                <i data-lucide="trending-up" class="w-3 h-3"></i>
+                <span class="text-xs font-medium">--</span>
+            </div>
+        </div>
+        <div class="px-5 pb-4">
+            <span id="slow-queries" class="text-2xl font-bold tracking-tight">--</span>
+        </div>
+    </div>
+
+    <!-- 总 QPS -->
+    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+        <div class="flex items-center justify-between px-5 pt-4 pb-2">
+            <span class="text-sm font-medium text-muted-foreground">总 QPS</span>
+            <div class="flex items-center gap-1.5" id="qps-badge">
+                <i data-lucide="trending-up" class="w-3 h-3"></i>
+                <span class="text-xs font-medium">--</span>
+            </div>
+        </div>
+        <div class="px-5 pb-4">
+            <span id="total-qps" class="text-2xl font-bold tracking-tight">--</span>
+        </div>
+    </div>
+</div>
 
 <!-- QPS 趋势图 -->
-<section id="qps-chart-section">
-    <article>
-        <header>QPS 趋势（最近 24 小时）</header>
-        <canvas id="qpsChart"></canvas>
-    </article>
-</section>
+<div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+    <!-- 图表头部 -->
+    <div class="flex items-center justify-between flex-wrap px-5 min-h-14 gap-2.5 border-b border-border">
+        <h3 class="text-base font-semibold leading-none tracking-tight">MySQL 指标趋势</h3>
+        <div class="flex items-center gap-2.5">
+            <!-- 时段选择 -->
+            <div class="relative">
+                <select
+                    id="period-select"
+                    class="inline-flex h-8 items-center justify-between rounded-md border border-input bg-background px-3 gap-1.5 text-[0.8125rem] font-medium shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 appearance-none pr-7"
+                >
+                    <option value="1">最近 1 小时</option>
+                    <option value="6">最近 6 小时</option>
+                    <option value="24" selected>最近 24 小时</option>
+                    <option value="72">最近 3 天</option>
+                    <option value="168">最近 7 天</option>
+                </select>
+                <i data-lucide="chevron-down" class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground"></i>
+            </div>
+        </div>
+    </div>
 
-<!-- 连接数趋势图 -->
-<section id="connections-chart-section">
-    <article>
-        <header>连接数趋势（最近 24 小时）</header>
-        <canvas id="connectionsChart"></canvas>
-    </article>
-</section>
+    <!-- 统计摘要 -->
+    <div class="flex items-center flex-wrap gap-3.5 md:gap-10 px-5 py-4 text-sm border-b border-border">
+        <!-- QPS 摘要 -->
+        <div class="flex items-center gap-3.5">
+            <div class="flex items-center gap-1.5">
+                <div class="w-1 h-3 rounded-full" style="background-color: var(--color-chart-qps)"></div>
+                <span class="text-muted-foreground">QPS</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="chart-qps-total" class="text-2xl font-bold">--</span>
+                <span id="chart-qps-badge" class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium">
+                    --
+                </span>
+            </div>
+        </div>
+        <!-- 连接数摘要 -->
+        <div class="flex items-center gap-3.5">
+            <div class="flex items-center gap-1.5">
+                <div class="w-1 h-3 rounded-full" style="background-color: var(--color-chart-conn)"></div>
+                <span class="text-muted-foreground">连接数</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="chart-conn-total" class="text-2xl font-bold">--</span>
+                <span id="chart-conn-badge" class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium">
+                    --
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表区域 -->
+    <div class="px-2 pb-6 pt-4">
+        <div id="main-chart" class="w-full" style="height: 340px;"></div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-
 <script>
-    // 图表实例
-    let qpsChart = null;
-    let connectionsChart = null;
+    // ===== 图表颜色 =====
+    const CHART_COLORS = {
+        qps: 'var(--color-chart-qps)',
+        conn: 'var(--color-chart-conn)',
+    };
+    const CHART_COLORS_HEX = {
+        qps: '#f59e0b',
+        conn: '#8b5cf6',
+        qpsGlow: 'rgba(245, 158, 11, 0.15)',
+        connGlow: 'rgba(139, 92, 246, 0.15)',
+    };
 
-    // 初始化图表
-    function initCharts() {
-        const qpsCtx = document.getElementById('qpsChart').getContext('2d');
-        qpsChart = new Chart(qpsCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [
-                    {
-                        label: 'SELECT QPS',
-                        data: [],
-                        borderColor: '#3b82f6',
-                        tension: 0.1
-                    },
-                    {
-                        label: 'INSERT QPS',
-                        data: [],
-                        borderColor: '#22c55e',
-                        tension: 0.1
-                    },
-                    {
-                        label: 'UPDATE QPS',
-                        data: [],
-                        borderColor: '#f97316',
-                        tension: 0.1
-                    },
-                    {
-                        label: 'DELETE QPS',
-                        data: [],
-                        borderColor: '#ef4444',
-                        tension: 0.1
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-
-        const connCtx = document.getElementById('connectionsChart').getContext('2d');
-        connectionsChart = new Chart(connCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [
-                    {
-                        label: '连接数',
-                        data: [],
-                        borderColor: '#8b5cf6',
-                        tension: 0.1
-                    },
-                    {
-                        label: '活跃线程',
-                        data: [],
-                        borderColor: '#06b6d4',
-                        tension: 0.1
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
+    // ===== 主题检测 =====
+    function isDark() {
+        return document.documentElement.classList.contains('dark');
+    }
+    function getThemeColors() {
+        const dark = isDark();
+        return {
+            text: dark ? '#a1a1aa' : '#71717a',
+            textBold: dark ? '#fafafa' : '#09090b',
+            border: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+            gridLine: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+            tooltipBg: dark ? '#1c1c22' : '#ffffff',
+            tooltipBorder: dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+            tooltipText: dark ? '#fafafa' : '#09090b',
+            tooltipMuted: dark ? '#a1a1aa' : '#71717a',
+            bg: dark ? '#09090b' : '#ffffff',
+        };
     }
 
-    // 更新状态卡片
+    // ===== 状态更新 =====
+    let prevStatus = null;
+
     async function updateStatus() {
         try {
-            const response = await fetch('/api/status');
-            const data = await response.json();
+            const res = await fetch('/api/status');
+            const data = await res.json();
 
-            document.getElementById('mysql-status').textContent = data.message;
+            // 状态指示点
+            const dot = document.getElementById('status-dot');
+            const statusText = document.getElementById('mysql-status');
+            if (data.connected) {
+                dot.className = 'w-2 h-2 rounded-full bg-green-500';
+                statusText.textContent = data.message;
+                statusText.className = 'text-sm font-medium text-green-600 dark:text-green-400';
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-destructive';
+                statusText.textContent = data.message;
+                statusText.className = 'text-sm font-medium text-destructive';
+            }
+
+            // 基础信息
             document.getElementById('mysql-uptime').textContent = data.uptime;
-            document.getElementById('last-update').textContent = data.last_update || '--';
-            document.getElementById('threads-connected').textContent = data.threads_connected;
-            document.getElementById('threads-running').textContent = data.threads_running;
-            document.getElementById('slow-queries').textContent = data.slow_queries;
-            document.getElementById('total-qps').textContent = data.total_qps;
+            document.getElementById('last-update').textContent = data.last_update
+                ? new Date(data.last_update).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                : '--';
 
-            // 处理警告横幅
+            // 指标卡片
+            updateMetricCard('threads-connected', data.threads_connected, prevStatus?.threads_connected);
+            updateMetricCard('threads-running', data.threads_running, prevStatus?.threads_running);
+            updateMetricCard('slow-queries', data.slow_queries, prevStatus?.slow_queries);
+            updateMetricCard('total-qps', data.total_qps, prevStatus?.total_qps);
+
+            // 警告横幅
             const banner = document.getElementById('warning-banner');
             if (!data.connected && data.last_update) {
-                banner.style.display = 'block';
+                banner.classList.remove('hidden');
                 document.getElementById('warning-message').textContent =
-                    `MySQL 连接异常，最后成功采集时间: ${data.last_update}`;
+                    `MySQL 连接异常，最后成功采集: ${data.last_update}`;
             } else {
-                banner.style.display = 'none';
+                banner.classList.add('hidden');
             }
-        } catch (error) {
-            console.error('获取状态失败:', error);
+
+            prevStatus = data;
+        } catch (e) {
+            console.error('获取状态失败:', e);
         }
     }
 
-    // 更新图表
+    function updateMetricCard(id, current, previous) {
+        const el = document.getElementById(id);
+        el.textContent = typeof current === 'number' ? current.toLocaleString() : current;
+
+        // 更新对应的 badge
+        const badgeMap = {
+            'threads-connected': 'connections-badge',
+            'threads-running': 'running-badge',
+            'slow-queries': 'slow-badge',
+            'total-qps': 'qps-badge',
+        };
+        const badge = document.getElementById(badgeMap[id]);
+        if (!badge || previous == null || current == null || typeof current !== 'number') return;
+
+        const diff = current - previous;
+        const span = badge.querySelector('span');
+        const icon = badge.querySelector('i');
+
+        if (diff > 0) {
+            badge.className = 'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400';
+            icon.setAttribute('data-lucide', 'trending-up');
+            span.textContent = `+${diff}`;
+        } else if (diff < 0) {
+            badge.className = 'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400';
+            icon.setAttribute('data-lucide', 'trending-down');
+            span.textContent = `${diff}`;
+        } else {
+            badge.className = 'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground';
+            icon.setAttribute('data-lucide', 'minus');
+            span.textContent = '0';
+        }
+        lucide.createIcons();
+    }
+
+    // ===== ECharts 图表 =====
+    let chart = null;
+    let currentData = null;
+
+    function initChart() {
+        const dom = document.getElementById('main-chart');
+        chart = echarts.init(dom);
+
+        // 响应窗口变化
+        window.addEventListener('resize', () => chart && chart.resize());
+        // 响应主题变化
+        window.addEventListener('themechange', () => {
+            if (currentData) renderChart(currentData);
+        });
+    }
+
+    function renderChart(data) {
+        if (!chart) return;
+        currentData = data;
+        const tc = getThemeColors();
+        const hours = parseInt(document.getElementById('period-select').value);
+
+        // 格式化 X 轴标签
+        const labels = data.timestamps.map(t => {
+            const d = new Date(t);
+            if (hours <= 6) {
+                return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+            } else if (hours <= 72) {
+                return d.toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            } else {
+                return d.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+            }
+        });
+
+        // 计算 QPS 总和
+        const totalQps = data.select_qps.map((s, i) => {
+            return (s || 0) + (data.insert_qps[i] || 0) + (data.update_qps[i] || 0) + (data.delete_qps[i] || 0);
+        });
+
+        // 计算平均值用于摘要
+        const avgQps = totalQps.length > 0
+            ? Math.round(totalQps.reduce((a, b) => a + b, 0) / totalQps.length * 100) / 100
+            : 0;
+        const avgConn = data.threads_connected.length > 0
+            ? Math.round(data.threads_connected.reduce((a, b) => a + (b || 0), 0) / data.threads_connected.length)
+            : 0;
+
+        // 更新摘要卡片
+        document.getElementById('chart-qps-total').textContent = avgQps.toLocaleString();
+        document.getElementById('chart-conn-total').textContent = avgConn.toLocaleString();
+        updateSummaryBadge('chart-qps-badge', totalQps);
+        updateSummaryBadge('chart-conn-badge', data.threads_connected);
+
+        const option = {
+            animation: true,
+            animationDuration: 800,
+            animationEasing: 'cubicOut',
+            grid: {
+                top: 30,
+                right: 60,
+                left: 60,
+                bottom: 40,
+            },
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: tc.tooltipBg,
+              borderColor: tc.tooltipBorder,
+              borderWidth: 1,
+              padding: [12, 16],
+              textStyle: {
+                  color: tc.tooltipText,
+                  fontSize: 12,
+              },
+              axisPointer: {
+                  type: 'line',
+                  lineStyle: {
+                      color: tc.border,
+                      type: 'dashed',
+                  },
+              },
+              formatter: function(params) {
+                  const label = params[0].axisValueLabel;
+                  let html = '<div style="margin-bottom:8px;font-weight:500;color:' + tc.tooltipMuted + ';font-size:12px">' + label + '</div>';
+                  params.forEach(function(p) {
+                      const color = p.color;
+                      const name = p.seriesName;
+                      const val = typeof p.value === 'number' ? p.value.toLocaleString() : p.value;
+                      html += '<div style="display:flex;align-items:center;gap:8px;margin-top:6px">';
+                      html += '<div style="width:8px;height:3px;border-radius:2px;background:' + color + '"></div>';
+                      html += '<span style="flex:1;color:' + tc.tooltipMuted + '">' + name + ':</span>';
+                      html += '<span style="font-weight:600;font-family:monospace">' + val + '</span>';
+                      html += '</div>';
+                  });
+                  return html;
+              },
+          },
+            xAxis: {
+                type: 'category',
+                data: labels,
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: {
+                    color: tc.text,
+                    fontSize: 11,
+                    margin: 12,
+                },
+            },
+            yAxis: [
+                {
+                    type: 'value',
+                    name: 'QPS',
+                    nameTextStyle: { color: tc.text, fontSize: 11, padding: [0, 40, 0, 0] },
+                    position: 'left',
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    axisLabel: {
+                        color: tc.text,
+                        fontSize: 11,
+                        margin: 12,
+                    },
+                    splitLine: {
+                        lineStyle: { color: tc.gridLine, type: 'dashed' },
+                    },
+                },
+                {
+                    type: 'value',
+                    name: '连接数',
+                    nameTextStyle: { color: tc.text, fontSize: 11, padding: [0, 0, 0, 40] },
+                    position: 'right',
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    axisLabel: {
+                        color: tc.text,
+                        fontSize: 11,
+                        margin: 12,
+                    },
+                    splitLine: { show: false },
+                },
+            ],
+            series: [
+                // QPS 总量 - 面积图
+                {
+                    name: '总 QPS',
+                    type: 'line',
+                    yAxisIndex: 0,
+                    data: totalQps,
+                    smooth: false,
+                    symbol: 'none',
+                    lineStyle: {
+                        color: CHART_COLORS_HEX.qps,
+                        width: 2,
+                    },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: CHART_COLORS_HEX.qpsGlow },
+                            { offset: 1, color: 'transparent' },
+                        ]),
+                    },
+                },
+                // SELECT QPS - 细线
+                {
+                    name: 'SELECT QPS',
+                    type: 'line',
+                    yAxisIndex: 0,
+                    data: data.select_qps,
+                    smooth: false,
+                    symbol: 'none',
+                    lineStyle: { color: '#3b82f6', width: 1 },
+                },
+                // INSERT QPS - 细线
+                {
+                    name: 'INSERT QPS',
+                    type: 'line',
+                    yAxisIndex: 0,
+                    data: data.insert_qps,
+                    smooth: false,
+                    symbol: 'none',
+                    lineStyle: { color: '#22c55e', width: 1 },
+                },
+                // UPDATE QPS - 细线
+                {
+                    name: 'UPDATE QPS',
+                    type: 'line',
+                    yAxisIndex: 0,
+                    data: data.update_qps,
+                    smooth: false,
+                    symbol: 'none',
+                    lineStyle: { color: '#f97316', width: 1 },
+                },
+                // DELETE QPS - 细线
+                {
+                    name: 'DELETE QPS',
+                    type: 'line',
+                    yAxisIndex: 0,
+                    data: data.delete_qps,
+                    smooth: false,
+                    symbol: 'none',
+                    lineStyle: { color: '#ef4444', width: 1 },
+                },
+                // 连接数 - 面积图
+                {
+                    name: '连接数',
+                    type: 'line',
+                    yAxisIndex: 1,
+                    data: data.threads_connected,
+                    smooth: false,
+                    symbol: 'none',
+                    lineStyle: {
+                        color: CHART_COLORS_HEX.conn,
+                        width: 2,
+                    },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: CHART_COLORS_HEX.connGlow },
+                            { offset: 1, color: 'transparent' },
+                        ]),
+                    },
+                },
+                // 活跃线程 - 虚线
+                {
+                    name: '活跃线程',
+                    type: 'line',
+                    yAxisIndex: 1,
+                    data: data.threads_running,
+                    smooth: false,
+                    symbol: 'none',
+                    lineStyle: {
+                        color: CHART_COLORS_HEX.conn,
+                        width: 1,
+                        type: 'dashed',
+                    },
+                },
+            ],
+        };
+
+        chart.setOption(option, true);
+    }
+
+    function updateSummaryBadge(badgeId, dataArray) {
+        const badge = document.getElementById(badgeId);
+        if (!badge || !dataArray || dataArray.length < 2) {
+            if (badge) { badge.textContent = '--'; badge.className = 'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground'; }
+            return;
+        }
+
+        const validData = dataArray.filter(v => v != null);
+        if (validData.length < 2) return;
+
+        const first = validData[0];
+        const last = validData[validData.length - 1];
+        const change = first !== 0 ? Math.round((last - first) / Math.abs(first) * 100) : 0;
+
+        if (change > 0) {
+            badge.className = 'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400';
+            badge.innerHTML = '<i data-lucide="trending-up" class="w-3 h-3"></i> +' + Math.abs(change) + '%';
+        } else if (change < 0) {
+            badge.className = 'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400';
+            badge.innerHTML = '<i data-lucide="trending-down" class="w-3 h-3"></i> -' + Math.abs(change) + '%';
+        } else {
+            badge.className = 'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground';
+            badge.innerHTML = '<i data-lucide="minus" class="w-3 h-3"></i> 0%';
+        }
+        lucide.createIcons();
+    }
+
+    // ===== 图表数据更新 =====
     async function updateCharts() {
         try {
-            const response = await fetch('/api/metrics?hours=24');
-            const data = await response.json();
-
-            // 格式化时间标签
-            const labels = data.timestamps.map(t => {
-                const date = new Date(t);
-                return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-            });
-
-            // 更新 QPS 图表
-            qpsChart.data.labels = labels;
-            qpsChart.data.datasets[0].data = data.select_qps;
-            qpsChart.data.datasets[1].data = data.insert_qps;
-            qpsChart.data.datasets[2].data = data.update_qps;
-            qpsChart.data.datasets[3].data = data.delete_qps;
-            qpsChart.update();
-
-            // 更新连接数图表
-            connectionsChart.data.labels = labels;
-            connectionsChart.data.datasets[0].data = data.threads_connected;
-            connectionsChart.data.datasets[1].data = data.threads_running;
-            connectionsChart.update();
-        } catch (error) {
-            console.error('获取指标失败:', error);
+            const hours = parseInt(document.getElementById('period-select').value);
+            const res = await fetch('/api/metrics?hours=' + hours);
+            const data = await res.json();
+            renderChart(data);
+        } catch (e) {
+            console.error('获取图表数据失败:', e);
         }
     }
 
-    // 页面加载后初始化
+    // ===== 初始化 =====
     document.addEventListener('DOMContentLoaded', () => {
-        initCharts();
+        initChart();
         updateStatus();
         updateCharts();
 
-        // 每 60 秒刷新一次
+        // 时段切换
+        document.getElementById('period-select').addEventListener('change', updateCharts);
+
+        // 定时刷新
         setInterval(() => {
             updateStatus();
             updateCharts();

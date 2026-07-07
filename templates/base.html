@@ -1,61 +1,109 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<html lang="zh-CN" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Atlas MySQL Monitor{% endblock %}</title>
 
-    <!-- Pico.css -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <!-- Tailwind CSS v3 CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: 'var(--background)',
+                        foreground: 'var(--foreground)',
+                        card: { DEFAULT: 'var(--card)', foreground: 'var(--card-foreground)' },
+                        primary: { DEFAULT: 'var(--primary)', foreground: 'var(--primary-foreground)' },
+                        secondary: { DEFAULT: 'var(--secondary)', foreground: 'var(--secondary-foreground)' },
+                        muted: { DEFAULT: 'var(--muted)', foreground: 'var(--muted-foreground)' },
+                        accent: { DEFAULT: 'var(--accent)', foreground: 'var(--accent-foreground)' },
+                        destructive: { DEFAULT: 'var(--destructive)', foreground: 'var(--destructive-foreground)' },
+                        border: 'var(--border)',
+                        input: 'var(--input)',
+                        ring: 'var(--ring)',
+                    },
+                    borderRadius: {
+                        lg: 'var(--radius)',
+                        md: 'calc(var(--radius) - 2px)',
+                        sm: 'calc(var(--radius) - 4px)',
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
     <!-- 自定义样式 -->
     <link rel="stylesheet" href="/static/css/custom.css">
 </head>
-<body>
-    <header class="container">
-        <nav>
-            <ul>
-                <li><strong>Atlas MySQL Monitor</strong></li>
-            </ul>
-            <ul>
-                <li>
-                    <a href="#" id="theme-toggle" class="outline" role="button">
-                        <span id="theme-icon">🌙</span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
+<body class="bg-background text-foreground min-h-screen antialiased">
+    <!-- 顶部导航 -->
+    <header class="sticky top-0 z-50 border-b border-border bg-background">
+        <div class="mx-auto max-w-7xl flex h-14 items-center justify-between px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center gap-2">
+                <i data-lucide="database" class="w-5 h-5 text-primary"></i>
+                <span class="text-base font-semibold">Atlas MySQL Monitor</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button
+                    id="theme-toggle"
+                    class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground w-9 h-9"
+                    aria-label="切换主题"
+                >
+                    <i data-lucide="moon" id="theme-icon-dark" class="w-4 h-4"></i>
+                    <i data-lucide="sun" id="theme-icon-light" class="w-4 h-4 hidden"></i>
+                </button>
+            </div>
+        </div>
     </header>
 
-    <main class="container">
+    <!-- 主内容 -->
+    <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="container">
-        <small>Atlas MySQL Monitor v0.1.0</small>
+    <!-- 页脚 -->
+    <footer class="border-t border-border">
+        <div class="mx-auto max-w-7xl flex h-12 items-center px-4 sm:px-6 lg:px-8">
+            <small class="text-xs text-muted-foreground">Atlas MySQL Monitor v0.1.0</small>
+        </div>
     </footer>
 
     {% block scripts %}{% endblock %}
 
+    <!-- 初始化 Lucide 图标 -->
+    <script>lucide.createIcons();</script>
+
     <!-- 主题切换脚本 -->
     <script>
         const themeToggle = document.getElementById('theme-toggle');
-        const themeIcon = document.getElementById('theme-icon');
+        const iconDark = document.getElementById('theme-icon-dark');
+        const iconLight = document.getElementById('theme-icon-light');
         const html = document.documentElement;
 
-        // 从 localStorage 读取主题
+        function applyTheme(theme) {
+            html.classList.toggle('dark', theme === 'dark');
+            html.classList.toggle('light', theme === 'light');
+            iconDark.classList.toggle('hidden', theme === 'dark');
+            iconLight.classList.toggle('hidden', theme === 'light');
+            localStorage.setItem('theme', theme);
+            window.dispatchEvent(new CustomEvent('themechange', { detail: theme }));
+        }
+
         const savedTheme = localStorage.getItem('theme') || 'light';
-        html.setAttribute('data-theme', savedTheme);
-        themeIcon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+        applyTheme(savedTheme);
 
-        themeToggle.addEventListener('click', (e) => {
-            e.preventDefault();
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+        themeToggle.addEventListener('click', () => {
+            const current = html.classList.contains('dark') ? 'dark' : 'light';
+            applyTheme(current === 'dark' ? 'light' : 'dark');
         });
     </script>
 </body>
