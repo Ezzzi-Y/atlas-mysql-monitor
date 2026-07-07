@@ -1,0 +1,115 @@
+commit 49c51128df1281b68194e1ff647138353aaf0f75
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Tue Jul 7 23:48:44 2026 +0800
+
+    feat: SQLite 数据库层
+
+ database.py            | 53 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ tests/test_database.py | 35 +++++++++++++++++++++++++++++++++
+ 2 files changed, 88 insertions(+)
+commit 49c51128df1281b68194e1ff647138353aaf0f75
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Tue Jul 7 23:48:44 2026 +0800
+
+    feat: SQLite 数据库层
+
+diff --git a/database.py b/database.py
+new file mode 100644
+index 0000000..2f7ec43
+--- /dev/null
++++ b/database.py
+@@ -0,0 +1,53 @@
++# database.py
++import aiosqlite
++from contextlib import asynccontextmanager
++from pathlib import Path
++
++# 确保 data 目录存在
++DATA_DIR = Path("data")
++DATA_DIR.mkdir(exist_ok=True)
++
++DEFAULT_DB_PATH = DATA_DIR / "monitor.db"
++
++
++async def init_db(db_path: str = None):
++    """初始化数据库，创建表结构"""
++    if db_path is None:
++        db_path = str(DEFAULT_DB_PATH)
++
++    async with aiosqlite.connect(db_path) as db:
++        await db.execute("""
++            CREATE TABLE IF NOT EXISTS mysql_metrics (
++                id INTEGER PRIMARY KEY AUTOINCREMENT,
++                timestamp DATETIME NOT NULL DEFAULT (datetime('now', 'localtime')),
++                threads_connected INTEGER,
++                threads_running INTEGER,
++                uptime INTEGER,
++                slow_queries INTEGER,
++                com_select INTEGER,
++                com_insert INTEGER,
++                com_update INTEGER,
++                com_delete INTEGER,
++                select_qps REAL,
++                insert_qps REAL,
++                update_qps REAL,
++                delete_qps REAL
++            )
++        """)
++        await db.execute(
++            "CREATE INDEX IF NOT EXISTS idx_timestamp ON mysql_metrics(timestamp)"
++        )
++        await db.commit()
++
++
++@asynccontextmanager
++async def get_db(db_path: str = None):
++    """获取数据库连接的上下文管理器"""
++    if db_path is None:
++        db_path = str(DEFAULT_DB_PATH)
++
++    db = await aiosqlite.connect(db_path)
++    try:
++        yield db
++    finally:
++        await db.close()
+diff --git a/tests/test_database.py b/tests/test_database.py
+new file mode 100644
+index 0000000..80bddaa
+--- /dev/null
++++ b/tests/test_database.py
+@@ -0,0 +1,35 @@
++# tests/test_database.py
++import pytest
++import aiosqlite
++import os
++from database import init_db, get_db
++
++
++@pytest.fixture
++def db_path(tmp_path):
++    """创建临时数据库路径"""
++    return str(tmp_path / "test.db")
++
++
++@pytest.mark.asyncio
++async def test_init_db_creates_table(db_path):
++    """测试初始化数据库创建表"""
++    await init_db(db_path)
++
++    async with aiosqlite.connect(db_path) as db:
++        cursor = await db.execute(
++            "SELECT name FROM sqlite_master WHERE type='table' AND name='mysql_metrics'"
++        )
++        table = await cursor.fetchone()
++        assert table is not None
++
++
++@pytest.mark.asyncio
++async def test_get_db_returns_connection(db_path):
++    """测试获取数据库连接"""
++    await init_db(db_path)
++
++    async with get_db(db_path) as db:
++        cursor = await db.execute("SELECT 1")
++        result = await cursor.fetchone()
++        assert result[0] == 1

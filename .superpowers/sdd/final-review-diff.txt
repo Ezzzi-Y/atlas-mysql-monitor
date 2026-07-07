@@ -1,0 +1,3730 @@
+commit 255f3401d9a56d7ce2cc28bbc9e2c80cc9ecb689
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Tue Jul 7 23:45:06 2026 +0800
+
+    feat: 项目配置与依赖管理
+
+ .env.example         |  10 ++
+ .gitignore           |   6 +
+ config.py            |  19 ++
+ main.py              |  13 ++
+ pyproject.toml       |  20 +++
+ test_main.http       |   9 +
+ tests/__init__.py    |   0
+ tests/test_config.py |  28 +++
+ uv.lock              | 492 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 9 files changed, 597 insertions(+)
+commit 255f3401d9a56d7ce2cc28bbc9e2c80cc9ecb689
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Tue Jul 7 23:45:06 2026 +0800
+
+    feat: 项目配置与依赖管理
+
+diff --git a/.env.example b/.env.example
+new file mode 100644
+index 0000000..9af8e6e
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,10 @@
++# MySQL 连接配置
++MYSQL_HOST=localhost
++MYSQL_PORT=3306
++MYSQL_USER=monitor
++MYSQL_PASSWORD=your_password
++MYSQL_DATABASE=mysql
++
++# 监控配置
++COLLECT_INTERVAL=60
++RETENTION_DAYS=30
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..679e704
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,6 @@
++.venv/
++.env
++data/
++__pycache__/
++*.pyc
++.idea/
+diff --git a/config.py b/config.py
+new file mode 100644
+index 0000000..f2103ea
+--- /dev/null
++++ b/config.py
+@@ -0,0 +1,19 @@
++from pydantic_settings import BaseSettings
++
++
++class Config(BaseSettings):
++    # MySQL 连接配置
++    MYSQL_HOST: str = "localhost"
++    MYSQL_PORT: int = 3306
++    MYSQL_USER: str = "root"
++    MYSQL_PASSWORD: str = ""
++    MYSQL_DATABASE: str = "mysql"
++
++    # 监控配置
++    COLLECT_INTERVAL: int = 60  # 采集间隔（秒）
++    RETENTION_DAYS: int = 30    # 数据保留天数
++
++    model_config = {"env_file": ".env"}
++
++
++config = Config()
+diff --git a/main.py b/main.py
+new file mode 100644
+index 0000000..6d7c6d9
+--- /dev/null
++++ b/main.py
+@@ -0,0 +1,13 @@
++from fastapi import FastAPI
++
++app = FastAPI()
++
++
++@app.get("/")
++async def root():
++    return {"message": "Hello World"}
++
++
++@app.get("/hello/{name}")
++async def say_hello(name: str):
++    return {"message": f"Hello {name}"}
+diff --git a/pyproject.toml b/pyproject.toml
+new file mode 100644
+index 0000000..444a8cc
+--- /dev/null
++++ b/pyproject.toml
+@@ -0,0 +1,20 @@
++[project]
++name = "atlas-mysql-monitor"
++version = "0.1.0"
++requires-python = ">=3.12"
++dependencies = [
++    "fastapi>=0.139.0",
++    "uvicorn>=0.50.2",
++    "aiosqlite>=0.20.0",
++    "aiomysql>=0.2.0",
++    "pydantic-settings>=2.0.0",
++    "jinja2>=3.1.0",
++    "python-dotenv>=1.0.0",
++]
++
++[project.optional-dependencies]
++dev = [
++    "pytest>=8.0.0",
++    "pytest-asyncio>=0.24.0",
++    "httpx>=0.27.0",
++]
+diff --git a/test_main.http b/test_main.http
+new file mode 100644
+index 0000000..c4ee07e
+--- /dev/null
++++ b/test_main.http
+@@ -0,0 +1,9 @@
++# Test your FastAPI endpoints
++
++GET http://127.0.0.1:8000/
++Accept: application/json
++###
++
++GET http://127.0.0.1:8000/hello/User
++Accept: application/json
++###
+diff --git a/tests/__init__.py b/tests/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/tests/test_config.py b/tests/test_config.py
+new file mode 100644
+index 0000000..dfcf930
+--- /dev/null
++++ b/tests/test_config.py
+@@ -0,0 +1,28 @@
++import pytest
++from config import Config
++
++
++def test_config_default_values(monkeypatch):
++    """测试配置默认值"""
++    monkeypatch.setenv("MYSQL_HOST", "localhost")
++    monkeypatch.setenv("MYSQL_USER", "test")
++    monkeypatch.setenv("MYSQL_PASSWORD", "test")
++
++    config = Config()
++    assert config.MYSQL_HOST == "localhost"
++    assert config.COLLECT_INTERVAL == 60
++    assert config.RETENTION_DAYS == 30
++
++
++def test_config_custom_values(monkeypatch):
++    """测试自定义配置值"""
++    monkeypatch.setenv("MYSQL_HOST", "192.168.1.100")
++    monkeypatch.setenv("MYSQL_USER", "admin")
++    monkeypatch.setenv("MYSQL_PASSWORD", "secret")
++    monkeypatch.setenv("COLLECT_INTERVAL", "30")
++    monkeypatch.setenv("RETENTION_DAYS", "7")
++
++    config = Config()
++    assert config.MYSQL_HOST == "192.168.1.100"
++    assert config.COLLECT_INTERVAL == 30
++    assert config.RETENTION_DAYS == 7
+diff --git a/uv.lock b/uv.lock
+new file mode 100644
+index 0000000..b881acc
+--- /dev/null
++++ b/uv.lock
+@@ -0,0 +1,492 @@
++version = 1
++revision = 3
++requires-python = ">=3.12"
++
++[[package]]
++name = "aiomysql"
++version = "0.3.2"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "pymysql" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/29/e0/302aeffe8d90853556f47f3106b89c16cc2ec2a4d269bdfd82e3f4ae12cc/aiomysql-0.3.2.tar.gz", hash = "sha256:72d15ef5cfc34c03468eb41e1b90adb9fd9347b0b589114bd23ead569a02ac1a", size = 108311, upload-time = "2025-10-22T00:15:21.278Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/4c/af/aae0153c3e28712adaf462328f6c7a3c196a1c1c27b491de4377dd3e6b52/aiomysql-0.3.2-py3-none-any.whl", hash = "sha256:c82c5ba04137d7afd5c693a258bea8ead2aad77101668044143a991e04632eb2", size = 71834, upload-time = "2025-10-22T00:15:15.905Z" },
++]
++
++[[package]]
++name = "aiosqlite"
++version = "0.22.1"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/4e/8a/64761f4005f17809769d23e518d915db74e6310474e733e3593cfc854ef1/aiosqlite-0.22.1.tar.gz", hash = "sha256:043e0bd78d32888c0a9ca90fc788b38796843360c855a7262a532813133a0650", size = 14821, upload-time = "2025-12-23T19:25:43.997Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/00/b7/e3bf5133d697a08128598c8d0abc5e16377b51465a33756de24fa7dee953/aiosqlite-0.22.1-py3-none-any.whl", hash = "sha256:21c002eb13823fad740196c5a2e9d8e62f6243bd9e7e4a1f87fb5e44ecb4fceb", size = 17405, upload-time = "2025-12-23T19:25:42.139Z" },
++]
++
++[[package]]
++name = "annotated-doc"
++version = "0.0.4"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/57/ba/046ceea27344560984e26a590f90bc7f4a75b06701f653222458922b558c/annotated_doc-0.0.4.tar.gz", hash = "sha256:fbcda96e87e9c92ad167c2e53839e57503ecfda18804ea28102353485033faa4", size = 7288, upload-time = "2025-11-10T22:07:42.062Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/1e/d3/26bf1008eb3d2daa8ef4cacc7f3bfdc11818d111f7e2d0201bc6e3b49d45/annotated_doc-0.0.4-py3-none-any.whl", hash = "sha256:571ac1dc6991c450b25a9c2d84a3705e2ae7a53467b5d111c24fa8baabbed320", size = 5303, upload-time = "2025-11-10T22:07:40.673Z" },
++]
++
++[[package]]
++name = "annotated-types"
++version = "0.7.0"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/ee/67/531ea369ba64dcff5ec9c3402f9f51bf748cec26dde048a2f973a4eea7f5/annotated_types-0.7.0.tar.gz", hash = "sha256:aff07c09a53a08bc8cfccb9c85b05f1aa9a2a6f23728d790723543408344ce89", size = 16081, upload-time = "2024-05-20T21:33:25.928Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl", hash = "sha256:1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53", size = 13643, upload-time = "2024-05-20T21:33:24.1Z" },
++]
++
++[[package]]
++name = "anyio"
++version = "4.14.1"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "idna" },
++    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/3b/72/5562aabb8dd7181e8e860622a38bea08d17842b99ecd4c91f84ac95251b0/anyio-4.14.1.tar.gz", hash = "sha256:8d648a3544c1a700e3ff78615cd679e4c5c3f149904287e73687b2596963629e", size = 254831, upload-time = "2026-06-24T20:56:06.017Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/b0/7b/90df4a0a816d98d6ea26f559d87836d494a2cf1fcf063be67df50a7bcc30/anyio-4.14.1-py3-none-any.whl", hash = "sha256:4e5533c5b8ff0a24f5d7a176cbe6877129cd183893f66b537f8f227d10527d72", size = 124875, upload-time = "2026-06-24T20:56:04.413Z" },
++]
++
++[[package]]
++name = "atlas-mysql-monitor"
++version = "0.1.0"
++source = { virtual = "." }
++dependencies = [
++    { name = "aiomysql" },
++    { name = "aiosqlite" },
++    { name = "fastapi" },
++    { name = "jinja2" },
++    { name = "pydantic-settings" },
++    { name = "python-dotenv" },
++    { name = "uvicorn" },
++]
++
++[package.optional-dependencies]
++dev = [
++    { name = "httpx" },
++    { name = "pytest" },
++    { name = "pytest-asyncio" },
++]
++
++[package.metadata]
++requires-dist = [
++    { name = "aiomysql", specifier = ">=0.2.0" },
++    { name = "aiosqlite", specifier = ">=0.20.0" },
++    { name = "fastapi", specifier = ">=0.139.0" },
++    { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27.0" },
++    { name = "jinja2", specifier = ">=3.1.0" },
++    { name = "pydantic-settings", specifier = ">=2.0.0" },
++    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
++    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24.0" },
++    { name = "python-dotenv", specifier = ">=1.0.0" },
++    { name = "uvicorn", specifier = ">=0.50.2" },
++]
++provides-extras = ["dev"]
++
++[[package]]
++name = "certifi"
++version = "2026.6.17"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/c9/c7/424b75da314c1045981bd9777432fad05a9e0c69daa4ed7e308bbaffe405/certifi-2026.6.17.tar.gz", hash = "sha256:024c88eeec92ca068db80f02b8b07c9cef7b9fe261d1d535abfd5abd6f6af432", size = 134594, upload-time = "2026-06-17T10:31:07.894Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/ef/2f/c5464532e965badff2f4c4c1a3a83f5697f0d7c407ed0cda44aaa99bb451/certifi-2026.6.17-py3-none-any.whl", hash = "sha256:2227dcbaafe0d2f59279d1762ddddc37783ed4354594f194ffc31d20f41fc3db", size = 133289, upload-time = "2026-06-17T10:31:06.348Z" },
++]
++
++[[package]]
++name = "click"
++version = "8.4.2"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "colorama", marker = "sys_platform == 'win32'" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/76/d4/81420972a676e8ffea40450d8c8c92943e7218a78fe9b64359836cc9876b/click-8.4.2.tar.gz", hash = "sha256:9a6cea6e60b17ebe0a44c5cc636d94f09bd66142c1cd7d8b4cd731c4917a15f6", size = 338000, upload-time = "2026-06-24T17:45:15.148Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/fb/e2/79c688af8b210d232694e31e59da9f6ec747bae31c3f5946e4e9b98860d5/click-8.4.2-py3-none-any.whl", hash = "sha256:e6f9f66136c816745b9d65817da91d61d957fb16e02e4dcd0552553c5a197b76", size = 119243, upload-time = "2026-06-24T17:45:13.73Z" },
++]
++
++[[package]]
++name = "colorama"
++version = "0.4.6"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44", size = 27697, upload-time = "2022-10-25T02:36:22.414Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335, upload-time = "2022-10-25T02:36:20.889Z" },
++]
++
++[[package]]
++name = "fastapi"
++version = "0.139.0"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "annotated-doc" },
++    { name = "pydantic" },
++    { name = "starlette" },
++    { name = "typing-extensions" },
++    { name = "typing-inspection" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/d3/af/a5f50ccfa659ec1802cb4ca842c23f06d906a8cc9aef6016a2caeea3d4ed/fastapi-0.139.0.tar.gz", hash = "sha256:99ab7b2d92223c76d6cf10757ab3f89d45b38267fc20b2a136cf02f6beac3145", size = 423016, upload-time = "2026-07-01T16:35:33.436Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/9e/7c/8e3c6ad324ea5cb36604fc3f968554887891c316d9dfde57761611d907ad/fastapi-0.139.0-py3-none-any.whl", hash = "sha256:cf15e1e9e667ddb0ad63811e60bd11390d1aac838ca4a7a23f421807b2308189", size = 130339, upload-time = "2026-07-01T16:35:32.19Z" },
++]
++
++[[package]]
++name = "h11"
++version = "0.16.0"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/01/ee/02a2c011bdab74c6fb3c75474d40b3052059d95df7e73351460c8588d963/h11-0.16.0.tar.gz", hash = "sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1", size = 101250, upload-time = "2025-04-24T03:35:25.427Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995617b185d14b22401f75ca86f384e87ff1/h11-0.16.0-py3-none-any.whl", hash = "sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86", size = 37515, upload-time = "2025-04-24T03:35:24.344Z" },
++]
++
++[[package]]
++name = "httpcore"
++version = "1.0.9"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "certifi" },
++    { name = "h11" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/06/94/82699a10bca87a5556c9c59b5963f2d039dbd239f25bc2a63907a05a14cb/httpcore-1.0.9.tar.gz", hash = "sha256:6e34463af53fd2ab5d807f399a9b45ea31c3dfa2276f15a2c3f00afff6e176e8", size = 85484, upload-time = "2025-04-24T22:06:22.219Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/7e/f5/f66802a942d491edb555dd61e3a9961140fd64c90bce1eafd741609d334d/httpcore-1.0.9-py3-none-any.whl", hash = "sha256:2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55", size = 78784, upload-time = "2025-04-24T22:06:20.566Z" },
++]
++
++[[package]]
++name = "httpx"
++version = "0.28.1"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "anyio" },
++    { name = "certifi" },
++    { name = "httpcore" },
++    { name = "idna" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/b1/df/48c586a5fe32a0f01324ee087459e112ebb7224f646c0b5023f5e79e9956/httpx-0.28.1.tar.gz", hash = "sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc", size = 141406, upload-time = "2024-12-06T15:37:23.222Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl", hash = "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad", size = 73517, upload-time = "2024-12-06T15:37:21.509Z" },
++]
++
++[[package]]
++name = "idna"
++version = "3.18"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/cd/63/9496c57188a2ee585e0f1db071d75089a11e98aa86eb99d9d7618fc1edce/idna-3.18.tar.gz", hash = "sha256:ffb385a7e039654cef1ab9ef32c6fafe283c0c0467bba1d9029738ce4a14a848", size = 196711, upload-time = "2026-06-02T14:34:07.794Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/1e/5e/d4e9f1a599fb8e573b7b87160658329fbf28d19eac2718f51fc3def3aa5a/idna-3.18-py3-none-any.whl", hash = "sha256:7f952cbe720b688055e3f87de14f5c3e5fdaa8bc3928985c4077ca689de849a2", size = 65455, upload-time = "2026-06-02T14:34:06.319Z" },
++]
++
++[[package]]
++name = "iniconfig"
++version = "2.3.0"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/72/34/14ca021ce8e5dfedc35312d08ba8bf51fdd999c576889fc2c24cb97f4f10/iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730", size = 20503, upload-time = "2025-10-18T21:55:43.219Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
++]
++
++[[package]]
++name = "jinja2"
++version = "3.1.6"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "markupsafe" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d", size = 245115, upload-time = "2025-03-05T20:05:02.478Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67", size = 134899, upload-time = "2025-03-05T20:05:00.369Z" },
++]
++
++[[package]]
++name = "markupsafe"
++version = "3.0.3"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/7e/99/7690b6d4034fffd95959cbe0c02de8deb3098cc577c67bb6a24fe5d7caa7/markupsafe-3.0.3.tar.gz", hash = "sha256:722695808f4b6457b320fdc131280796bdceb04ab50fe1795cd540799ebe1698", size = 80313, upload-time = "2025-09-27T18:37:40.426Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/5a/72/147da192e38635ada20e0a2e1a51cf8823d2119ce8883f7053879c2199b5/markupsafe-3.0.3-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:d53197da72cc091b024dd97249dfc7794d6a56530370992a5e1a08983ad9230e", size = 11615, upload-time = "2025-09-27T18:36:30.854Z" },
++    { url = "https://files.pythonhosted.org/packages/9a/81/7e4e08678a1f98521201c3079f77db69fb552acd56067661f8c2f534a718/markupsafe-3.0.3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:1872df69a4de6aead3491198eaf13810b565bdbeec3ae2dc8780f14458ec73ce", size = 12020, upload-time = "2025-09-27T18:36:31.971Z" },
++    { url = "https://files.pythonhosted.org/packages/1e/2c/799f4742efc39633a1b54a92eec4082e4f815314869865d876824c257c1e/markupsafe-3.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:3a7e8ae81ae39e62a41ec302f972ba6ae23a5c5396c8e60113e9066ef893da0d", size = 24332, upload-time = "2025-09-27T18:36:32.813Z" },
++    { url = "https://files.pythonhosted.org/packages/3c/2e/8d0c2ab90a8c1d9a24f0399058ab8519a3279d1bd4289511d74e909f060e/markupsafe-3.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:d6dd0be5b5b189d31db7cda48b91d7e0a9795f31430b7f271219ab30f1d3ac9d", size = 22947, upload-time = "2025-09-27T18:36:33.86Z" },
++    { url = "https://files.pythonhosted.org/packages/2c/54/887f3092a85238093a0b2154bd629c89444f395618842e8b0c41783898ea/markupsafe-3.0.3-cp312-cp312-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:94c6f0bb423f739146aec64595853541634bde58b2135f27f61c1ffd1cd4d16a", size = 21962, upload-time = "2025-09-27T18:36:35.099Z" },
++    { url = "https://files.pythonhosted.org/packages/c9/2f/336b8c7b6f4a4d95e91119dc8521402461b74a485558d8f238a68312f11c/markupsafe-3.0.3-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:be8813b57049a7dc738189df53d69395eba14fb99345e0a5994914a3864c8a4b", size = 23760, upload-time = "2025-09-27T18:36:36.001Z" },
++    { url = "https://files.pythonhosted.org/packages/32/43/67935f2b7e4982ffb50a4d169b724d74b62a3964bc1a9a527f5ac4f1ee2b/markupsafe-3.0.3-cp312-cp312-musllinux_1_2_riscv64.whl", hash = "sha256:83891d0e9fb81a825d9a6d61e3f07550ca70a076484292a70fde82c4b807286f", size = 21529, upload-time = "2025-09-27T18:36:36.906Z" },
++    { url = "https://files.pythonhosted.org/packages/89/e0/4486f11e51bbba8b0c041098859e869e304d1c261e59244baa3d295d47b7/markupsafe-3.0.3-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:77f0643abe7495da77fb436f50f8dab76dbc6e5fd25d39589a0f1fe6548bfa2b", size = 23015, upload-time = "2025-09-27T18:36:37.868Z" },
++    { url = "https://files.pythonhosted.org/packages/2f/e1/78ee7a023dac597a5825441ebd17170785a9dab23de95d2c7508ade94e0e/markupsafe-3.0.3-cp312-cp312-win32.whl", hash = "sha256:d88b440e37a16e651bda4c7c2b930eb586fd15ca7406cb39e211fcff3bf3017d", size = 14540, upload-time = "2025-09-27T18:36:38.761Z" },
++    { url = "https://files.pythonhosted.org/packages/aa/5b/bec5aa9bbbb2c946ca2733ef9c4ca91c91b6a24580193e891b5f7dbe8e1e/markupsafe-3.0.3-cp312-cp312-win_amd64.whl", hash = "sha256:26a5784ded40c9e318cfc2bdb30fe164bdb8665ded9cd64d500a34fb42067b1c", size = 15105, upload-time = "2025-09-27T18:36:39.701Z" },
++    { url = "https://files.pythonhosted.org/packages/e5/f1/216fc1bbfd74011693a4fd837e7026152e89c4bcf3e77b6692fba9923123/markupsafe-3.0.3-cp312-cp312-win_arm64.whl", hash = "sha256:35add3b638a5d900e807944a078b51922212fb3dedb01633a8defc4b01a3c85f", size = 13906, upload-time = "2025-09-27T18:36:40.689Z" },
++    { url = "https://files.pythonhosted.org/packages/38/2f/907b9c7bbba283e68f20259574b13d005c121a0fa4c175f9bed27c4597ff/markupsafe-3.0.3-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:e1cf1972137e83c5d4c136c43ced9ac51d0e124706ee1c8aa8532c1287fa8795", size = 11622, upload-time = "2025-09-27T18:36:41.777Z" },
++    { url = "https://files.pythonhosted.org/packages/9c/d9/5f7756922cdd676869eca1c4e3c0cd0df60ed30199ffd775e319089cb3ed/markupsafe-3.0.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:116bb52f642a37c115f517494ea5feb03889e04df47eeff5b130b1808ce7c219", size = 12029, upload-time = "2025-09-27T18:36:43.257Z" },
++    { url = "https://files.pythonhosted.org/packages/00/07/575a68c754943058c78f30db02ee03a64b3c638586fba6a6dd56830b30a3/markupsafe-3.0.3-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:133a43e73a802c5562be9bbcd03d090aa5a1fe899db609c29e8c8d815c5f6de6", size = 24374, upload-time = "2025-09-27T18:36:44.508Z" },
++    { url = "https://files.pythonhosted.org/packages/a9/21/9b05698b46f218fc0e118e1f8168395c65c8a2c750ae2bab54fc4bd4e0e8/markupsafe-3.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ccfcd093f13f0f0b7fdd0f198b90053bf7b2f02a3927a30e63f3ccc9df56b676", size = 22980, upload-time = "2025-09-27T18:36:45.385Z" },
++    { url = "https://files.pythonhosted.org/packages/7f/71/544260864f893f18b6827315b988c146b559391e6e7e8f7252839b1b846a/markupsafe-3.0.3-cp313-cp313-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:509fa21c6deb7a7a273d629cf5ec029bc209d1a51178615ddf718f5918992ab9", size = 21990, upload-time = "2025-09-27T18:36:46.916Z" },
++    { url = "https://files.pythonhosted.org/packages/c2/28/b50fc2f74d1ad761af2f5dcce7492648b983d00a65b8c0e0cb457c82ebbe/markupsafe-3.0.3-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:a4afe79fb3de0b7097d81da19090f4df4f8d3a2b3adaa8764138aac2e44f3af1", size = 23784, upload-time = "2025-09-27T18:36:47.884Z" },
++    { url = "https://files.pythonhosted.org/packages/ed/76/104b2aa106a208da8b17a2fb72e033a5a9d7073c68f7e508b94916ed47a9/markupsafe-3.0.3-cp313-cp313-musllinux_1_2_riscv64.whl", hash = "sha256:795e7751525cae078558e679d646ae45574b47ed6e7771863fcc079a6171a0fc", size = 21588, upload-time = "2025-09-27T18:36:48.82Z" },
++    { url = "https://files.pythonhosted.org/packages/b5/99/16a5eb2d140087ebd97180d95249b00a03aa87e29cc224056274f2e45fd6/markupsafe-3.0.3-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:8485f406a96febb5140bfeca44a73e3ce5116b2501ac54fe953e488fb1d03b12", size = 23041, upload-time = "2025-09-27T18:36:49.797Z" },
++    { url = "https://files.pythonhosted.org/packages/19/bc/e7140ed90c5d61d77cea142eed9f9c303f4c4806f60a1044c13e3f1471d0/markupsafe-3.0.3-cp313-cp313-win32.whl", hash = "sha256:bdd37121970bfd8be76c5fb069c7751683bdf373db1ed6c010162b2a130248ed", size = 14543, upload-time = "2025-09-27T18:36:51.584Z" },
++    { url = "https://files.pythonhosted.org/packages/05/73/c4abe620b841b6b791f2edc248f556900667a5a1cf023a6646967ae98335/markupsafe-3.0.3-cp313-cp313-win_amd64.whl", hash = "sha256:9a1abfdc021a164803f4d485104931fb8f8c1efd55bc6b748d2f5774e78b62c5", size = 15113, upload-time = "2025-09-27T18:36:52.537Z" },
++    { url = "https://files.pythonhosted.org/packages/f0/3a/fa34a0f7cfef23cf9500d68cb7c32dd64ffd58a12b09225fb03dd37d5b80/markupsafe-3.0.3-cp313-cp313-win_arm64.whl", hash = "sha256:7e68f88e5b8799aa49c85cd116c932a1ac15caaa3f5db09087854d218359e485", size = 13911, upload-time = "2025-09-27T18:36:53.513Z" },
++    { url = "https://files.pythonhosted.org/packages/e4/d7/e05cd7efe43a88a17a37b3ae96e79a19e846f3f456fe79c57ca61356ef01/markupsafe-3.0.3-cp313-cp313t-macosx_10_13_x86_64.whl", hash = "sha256:218551f6df4868a8d527e3062d0fb968682fe92054e89978594c28e642c43a73", size = 11658, upload-time = "2025-09-27T18:36:54.819Z" },
++    { url = "https://files.pythonhosted.org/packages/99/9e/e412117548182ce2148bdeacdda3bb494260c0b0184360fe0d56389b523b/markupsafe-3.0.3-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:3524b778fe5cfb3452a09d31e7b5adefeea8c5be1d43c4f810ba09f2ceb29d37", size = 12066, upload-time = "2025-09-27T18:36:55.714Z" },
++    { url = "https://files.pythonhosted.org/packages/bc/e6/fa0ffcda717ef64a5108eaa7b4f5ed28d56122c9a6d70ab8b72f9f715c80/markupsafe-3.0.3-cp313-cp313t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:4e885a3d1efa2eadc93c894a21770e4bc67899e3543680313b09f139e149ab19", size = 25639, upload-time = "2025-09-27T18:36:56.908Z" },
++    { url = "https://files.pythonhosted.org/packages/96/ec/2102e881fe9d25fc16cb4b25d5f5cde50970967ffa5dddafdb771237062d/markupsafe-3.0.3-cp313-cp313t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8709b08f4a89aa7586de0aadc8da56180242ee0ada3999749b183aa23df95025", size = 23569, upload-time = "2025-09-27T18:36:57.913Z" },
++    { url = "https://files.pythonhosted.org/packages/4b/30/6f2fce1f1f205fc9323255b216ca8a235b15860c34b6798f810f05828e32/markupsafe-3.0.3-cp313-cp313t-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:b8512a91625c9b3da6f127803b166b629725e68af71f8184ae7e7d54686a56d6", size = 23284, upload-time = "2025-09-27T18:36:58.833Z" },
++    { url = "https://files.pythonhosted.org/packages/58/47/4a0ccea4ab9f5dcb6f79c0236d954acb382202721e704223a8aafa38b5c8/markupsafe-3.0.3-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:9b79b7a16f7fedff2495d684f2b59b0457c3b493778c9eed31111be64d58279f", size = 24801, upload-time = "2025-09-27T18:36:59.739Z" },
++    { url = "https://files.pythonhosted.org/packages/6a/70/3780e9b72180b6fecb83a4814d84c3bf4b4ae4bf0b19c27196104149734c/markupsafe-3.0.3-cp313-cp313t-musllinux_1_2_riscv64.whl", hash = "sha256:12c63dfb4a98206f045aa9563db46507995f7ef6d83b2f68eda65c307c6829eb", size = 22769, upload-time = "2025-09-27T18:37:00.719Z" },
++    { url = "https://files.pythonhosted.org/packages/98/c5/c03c7f4125180fc215220c035beac6b9cb684bc7a067c84fc69414d315f5/markupsafe-3.0.3-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:8f71bc33915be5186016f675cd83a1e08523649b0e33efdb898db577ef5bb009", size = 23642, upload-time = "2025-09-27T18:37:01.673Z" },
++    { url = "https://files.pythonhosted.org/packages/80/d6/2d1b89f6ca4bff1036499b1e29a1d02d282259f3681540e16563f27ebc23/markupsafe-3.0.3-cp313-cp313t-win32.whl", hash = "sha256:69c0b73548bc525c8cb9a251cddf1931d1db4d2258e9599c28c07ef3580ef354", size = 14612, upload-time = "2025-09-27T18:37:02.639Z" },
++    { url = "https://files.pythonhosted.org/packages/2b/98/e48a4bfba0a0ffcf9925fe2d69240bfaa19c6f7507b8cd09c70684a53c1e/markupsafe-3.0.3-cp313-cp313t-win_amd64.whl", hash = "sha256:1b4b79e8ebf6b55351f0d91fe80f893b4743f104bff22e90697db1590e47a218", size = 15200, upload-time = "2025-09-27T18:37:03.582Z" },
++    { url = "https://files.pythonhosted.org/packages/0e/72/e3cc540f351f316e9ed0f092757459afbc595824ca724cbc5a5d4263713f/markupsafe-3.0.3-cp313-cp313t-win_arm64.whl", hash = "sha256:ad2cf8aa28b8c020ab2fc8287b0f823d0a7d8630784c31e9ee5edea20f406287", size = 13973, upload-time = "2025-09-27T18:37:04.929Z" },
++    { url = "https://files.pythonhosted.org/packages/33/8a/8e42d4838cd89b7dde187011e97fe6c3af66d8c044997d2183fbd6d31352/markupsafe-3.0.3-cp314-cp314-macosx_10_13_x86_64.whl", hash = "sha256:eaa9599de571d72e2daf60164784109f19978b327a3910d3e9de8c97b5b70cfe", size = 11619, upload-time = "2025-09-27T18:37:06.342Z" },
++    { url = "https://files.pythonhosted.org/packages/b5/64/7660f8a4a8e53c924d0fa05dc3a55c9cee10bbd82b11c5afb27d44b096ce/markupsafe-3.0.3-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:c47a551199eb8eb2121d4f0f15ae0f923d31350ab9280078d1e5f12b249e0026", size = 12029, upload-time = "2025-09-27T18:37:07.213Z" },
++    { url = "https://files.pythonhosted.org/packages/da/ef/e648bfd021127bef5fa12e1720ffed0c6cbb8310c8d9bea7266337ff06de/markupsafe-3.0.3-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:f34c41761022dd093b4b6896d4810782ffbabe30f2d443ff5f083e0cbbb8c737", size = 24408, upload-time = "2025-09-27T18:37:09.572Z" },
++    { url = "https://files.pythonhosted.org/packages/41/3c/a36c2450754618e62008bf7435ccb0f88053e07592e6028a34776213d877/markupsafe-3.0.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:457a69a9577064c05a97c41f4e65148652db078a3a509039e64d3467b9e7ef97", size = 23005, upload-time = "2025-09-27T18:37:10.58Z" },
++    { url = "https://files.pythonhosted.org/packages/bc/20/b7fdf89a8456b099837cd1dc21974632a02a999ec9bf7ca3e490aacd98e7/markupsafe-3.0.3-cp314-cp314-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:e8afc3f2ccfa24215f8cb28dcf43f0113ac3c37c2f0f0806d8c70e4228c5cf4d", size = 22048, upload-time = "2025-09-27T18:37:11.547Z" },
++    { url = "https://files.pythonhosted.org/packages/9a/a7/591f592afdc734f47db08a75793a55d7fbcc6902a723ae4cfbab61010cc5/markupsafe-3.0.3-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:ec15a59cf5af7be74194f7ab02d0f59a62bdcf1a537677ce67a2537c9b87fcda", size = 23821, upload-time = "2025-09-27T18:37:12.48Z" },
++    { url = "https://files.pythonhosted.org/packages/7d/33/45b24e4f44195b26521bc6f1a82197118f74df348556594bd2262bda1038/markupsafe-3.0.3-cp314-cp314-musllinux_1_2_riscv64.whl", hash = "sha256:0eb9ff8191e8498cca014656ae6b8d61f39da5f95b488805da4bb029cccbfbaf", size = 21606, upload-time = "2025-09-27T18:37:13.485Z" },
++    { url = "https://files.pythonhosted.org/packages/ff/0e/53dfaca23a69fbfbbf17a4b64072090e70717344c52eaaaa9c5ddff1e5f0/markupsafe-3.0.3-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:2713baf880df847f2bece4230d4d094280f4e67b1e813eec43b4c0e144a34ffe", size = 23043, upload-time = "2025-09-27T18:37:14.408Z" },
++    { url = "https://files.pythonhosted.org/packages/46/11/f333a06fc16236d5238bfe74daccbca41459dcd8d1fa952e8fbd5dccfb70/markupsafe-3.0.3-cp314-cp314-win32.whl", hash = "sha256:729586769a26dbceff69f7a7dbbf59ab6572b99d94576a5592625d5b411576b9", size = 14747, upload-time = "2025-09-27T18:37:15.36Z" },
++    { url = "https://files.pythonhosted.org/packages/28/52/182836104b33b444e400b14f797212f720cbc9ed6ba34c800639d154e821/markupsafe-3.0.3-cp314-cp314-win_amd64.whl", hash = "sha256:bdc919ead48f234740ad807933cdf545180bfbe9342c2bb451556db2ed958581", size = 15341, upload-time = "2025-09-27T18:37:16.496Z" },
++    { url = "https://files.pythonhosted.org/packages/6f/18/acf23e91bd94fd7b3031558b1f013adfa21a8e407a3fdb32745538730382/markupsafe-3.0.3-cp314-cp314-win_arm64.whl", hash = "sha256:5a7d5dc5140555cf21a6fefbdbf8723f06fcd2f63ef108f2854de715e4422cb4", size = 14073, upload-time = "2025-09-27T18:37:17.476Z" },
++    { url = "https://files.pythonhosted.org/packages/3c/f0/57689aa4076e1b43b15fdfa646b04653969d50cf30c32a102762be2485da/markupsafe-3.0.3-cp314-cp314t-macosx_10_13_x86_64.whl", hash = "sha256:1353ef0c1b138e1907ae78e2f6c63ff67501122006b0f9abad68fda5f4ffc6ab", size = 11661, upload-time = "2025-09-27T18:37:18.453Z" },
++    { url = "https://files.pythonhosted.org/packages/89/c3/2e67a7ca217c6912985ec766c6393b636fb0c2344443ff9d91404dc4c79f/markupsafe-3.0.3-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:1085e7fbddd3be5f89cc898938f42c0b3c711fdcb37d75221de2666af647c175", size = 12069, upload-time = "2025-09-27T18:37:19.332Z" },
++    { url = "https://files.pythonhosted.org/packages/f0/00/be561dce4e6ca66b15276e184ce4b8aec61fe83662cce2f7d72bd3249d28/markupsafe-3.0.3-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:1b52b4fb9df4eb9ae465f8d0c228a00624de2334f216f178a995ccdcf82c4634", size = 25670, upload-time = "2025-09-27T18:37:20.245Z" },
++    { url = "https://files.pythonhosted.org/packages/50/09/c419f6f5a92e5fadde27efd190eca90f05e1261b10dbd8cbcb39cd8ea1dc/markupsafe-3.0.3-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:fed51ac40f757d41b7c48425901843666a6677e3e8eb0abcff09e4ba6e664f50", size = 23598, upload-time = "2025-09-27T18:37:21.177Z" },
++    { url = "https://files.pythonhosted.org/packages/22/44/a0681611106e0b2921b3033fc19bc53323e0b50bc70cffdd19f7d679bb66/markupsafe-3.0.3-cp314-cp314t-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:f190daf01f13c72eac4efd5c430a8de82489d9cff23c364c3ea822545032993e", size = 23261, upload-time = "2025-09-27T18:37:22.167Z" },
++    { url = "https://files.pythonhosted.org/packages/5f/57/1b0b3f100259dc9fffe780cfb60d4be71375510e435efec3d116b6436d43/markupsafe-3.0.3-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:e56b7d45a839a697b5eb268c82a71bd8c7f6c94d6fd50c3d577fa39a9f1409f5", size = 24835, upload-time = "2025-09-27T18:37:23.296Z" },
++    { url = "https://files.pythonhosted.org/packages/26/6a/4bf6d0c97c4920f1597cc14dd720705eca0bf7c787aebc6bb4d1bead5388/markupsafe-3.0.3-cp314-cp314t-musllinux_1_2_riscv64.whl", hash = "sha256:f3e98bb3798ead92273dc0e5fd0f31ade220f59a266ffd8a4f6065e0a3ce0523", size = 22733, upload-time = "2025-09-27T18:37:24.237Z" },
++    { url = "https://files.pythonhosted.org/packages/14/c7/ca723101509b518797fedc2fdf79ba57f886b4aca8a7d31857ba3ee8281f/markupsafe-3.0.3-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:5678211cb9333a6468fb8d8be0305520aa073f50d17f089b5b4b477ea6e67fdc", size = 23672, upload-time = "2025-09-27T18:37:25.271Z" },
++    { url = "https://files.pythonhosted.org/packages/fb/df/5bd7a48c256faecd1d36edc13133e51397e41b73bb77e1a69deab746ebac/markupsafe-3.0.3-cp314-cp314t-win32.whl", hash = "sha256:915c04ba3851909ce68ccc2b8e2cd691618c4dc4c4232fb7982bca3f41fd8c3d", size = 14819, upload-time = "2025-09-27T18:37:26.285Z" },
++    { url = "https://files.pythonhosted.org/packages/1a/8a/0402ba61a2f16038b48b39bccca271134be00c5c9f0f623208399333c448/markupsafe-3.0.3-cp314-cp314t-win_amd64.whl", hash = "sha256:4faffd047e07c38848ce017e8725090413cd80cbc23d86e55c587bf979e579c9", size = 15426, upload-time = "2025-09-27T18:37:27.316Z" },
++    { url = "https://files.pythonhosted.org/packages/70/bc/6f1c2f612465f5fa89b95bead1f44dcb607670fd42891d8fdcd5d039f4f4/markupsafe-3.0.3-cp314-cp314t-win_arm64.whl", hash = "sha256:32001d6a8fc98c8cb5c947787c5d08b0a50663d139f1305bac5885d98d9b40fa", size = 14146, upload-time = "2025-09-27T18:37:28.327Z" },
++]
++
++[[package]]
++name = "packaging"
++version = "26.2"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/d7/f1/e7a6dd94a8d4a5626c03e4e99c87f241ba9e350cd9e6d75123f992427270/packaging-26.2.tar.gz", hash = "sha256:ff452ff5a3e828ce110190feff1178bb1f2ea2281fa2075aadb987c2fb221661", size = 228134, upload-time = "2026-04-24T20:15:23.917Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/df/b2/87e62e8c3e2f4b32e5fe99e0b86d576da1312593b39f47d8ceef365e95ed/packaging-26.2-py3-none-any.whl", hash = "sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e", size = 100195, upload-time = "2026-04-24T20:15:22.081Z" },
++]
++
++[[package]]
++name = "pluggy"
++version = "1.6.0"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe6ef3fa267035b518369d9511ffab804f839851d2779/pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3", size = 69412, upload-time = "2025-05-15T12:30:07.975Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746", size = 20538, upload-time = "2025-05-15T12:30:06.134Z" },
++]
++
++[[package]]
++name = "pydantic"
++version = "2.13.4"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "annotated-types" },
++    { name = "pydantic-core" },
++    { name = "typing-extensions" },
++    { name = "typing-inspection" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/18/a5/b60d21ac674192f8ab0ba4e9fd860690f9b4a6e51ca5df118733b487d8d6/pydantic-2.13.4.tar.gz", hash = "sha256:c40756b57adaa8b1efeeced5c196f3f3b7c435f90e84ea7f443901bec8099ef6", size = 844775, upload-time = "2026-05-06T13:43:05.343Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/fd/7b/122376b1fd3c62c1ed9dc80c931ace4844b3c55407b6fb2d199377c9736f/pydantic-2.13.4-py3-none-any.whl", hash = "sha256:45a282cde31d808236fd7ea9d919b128653c8b38b393d1c4ab335c62924d9aba", size = 472262, upload-time = "2026-05-06T13:43:02.641Z" },
++]
++
++[[package]]
++name = "pydantic-core"
++version = "2.46.4"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "typing-extensions" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/9d/56/921726b776ace8d8f5db44c4ef961006580d91dc52b803c489fafd1aa249/pydantic_core-2.46.4.tar.gz", hash = "sha256:62f875393d7f270851f20523dd2e29f082bcc82292d66db2b64ea71f64b6e1c1", size = 471464, upload-time = "2026-05-06T13:37:06.98Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/ce/8c/af022f0af448d7747c5154288d46b5f2bc5f17366eaa0e23e9aa04d59f3b/pydantic_core-2.46.4-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:3245406455a5d98187ec35530fd772b1d799b26667980872c8d4614991e2c4a2", size = 2106158, upload-time = "2026-05-06T13:38:57.215Z" },
++    { url = "https://files.pythonhosted.org/packages/19/95/6195171e385007300f0f5574592e467c568becce2d937a0b6804f218bc49/pydantic_core-2.46.4-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:962ccbab7b642487b1d8b7df90ef677e03134cf1fd8880bf698649b22a69371f", size = 1951724, upload-time = "2026-05-06T13:37:02.697Z" },
++    { url = "https://files.pythonhosted.org/packages/8e/bc/f47d1ff9cbb1620e1b5b697eef06010035735f07820180e74178226b27b3/pydantic_core-2.46.4-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8233f2947cf85404441fd7e0085f53b10c93e0ee78611099b5c7237e36aacbf7", size = 1975742, upload-time = "2026-05-06T13:37:09.448Z" },
++    { url = "https://files.pythonhosted.org/packages/5b/11/9b9a5b0306345664a2da6410877af6e8082481b5884b3ddd78d47c6013ce/pydantic_core-2.46.4-cp312-cp312-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:3a233125ac121aa3ffba9a2b59edfc4a985a76092dc8279586ab4b71390875e7", size = 2052418, upload-time = "2026-05-06T13:37:38.234Z" },
++    { url = "https://files.pythonhosted.org/packages/f1/b7/a65fec226f5d78fc39f4a13c4cc0c768c22b113438f60c14adc9d2865038/pydantic_core-2.46.4-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:5b712b53160b79a5850310b912a5ef8e57e56947c8ad690c227f5c9d7e561712", size = 2232274, upload-time = "2026-05-06T13:38:27.753Z" },
++    { url = "https://files.pythonhosted.org/packages/68/f0/92039db98b907ef49269a8271f67db9cb78ae2fc68062ef7e4e77adb5f61/pydantic_core-2.46.4-cp312-cp312-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:9401557acd873c3a7f3eb9383edef8ac4968f9510e340f4808d427e75667e7b4", size = 2309940, upload-time = "2026-05-06T13:38:05.353Z" },
++    { url = "https://files.pythonhosted.org/packages/5f/97/2aab507d3d00ca626e8e57c1eac6a79e4e5fbcc63eb99733ff55d1717f65/pydantic_core-2.46.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:926c9541b14b12b1681dca8a0b75feb510b06c6341b70a8e500c2fdcff837cce", size = 2094516, upload-time = "2026-05-06T13:39:10.577Z" },
++    { url = "https://files.pythonhosted.org/packages/22/37/a8aca44d40d737dde2bc05b3c6c07dff0de07ce6f82e9f3167aeaf4d5dea/pydantic_core-2.46.4-cp312-cp312-manylinux_2_31_riscv64.whl", hash = "sha256:56cb4851bcaf3d117eddcef4fe66afd750a50274b0da8e22be256d10e5611987", size = 2136854, upload-time = "2026-05-06T13:40:22.59Z" },
++    { url = "https://files.pythonhosted.org/packages/24/99/fcef1b79238c06a8cbec70819ac722ba76e02bc8ada9b0fd66eba40da01b/pydantic_core-2.46.4-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:c68fcd102d71ea85c5b2dfac3f4f8476eff42a9e078fd5faefff6d145063536b", size = 2180306, upload-time = "2026-05-06T13:40:10.666Z" },
++    { url = "https://files.pythonhosted.org/packages/ae/6c/fc44000918855b42779d007ae63b0532794739027b2f417321cddbc44f6a/pydantic_core-2.46.4-cp312-cp312-musllinux_1_1_aarch64.whl", hash = "sha256:b2f69dec1725e79a012d920df1707de5caf7ed5e08f3be4435e25803efc47458", size = 2190044, upload-time = "2026-05-06T13:40:43.231Z" },
++    { url = "https://files.pythonhosted.org/packages/6b/65/d9cadc9f1920d7a127ad2edba16c1db7916e59719285cd6c94600b0080ba/pydantic_core-2.46.4-cp312-cp312-musllinux_1_1_armv7l.whl", hash = "sha256:8d0820e8192167f80d88d64038e609c31452eeca865b4e1d9950a27a4609b00b", size = 2329133, upload-time = "2026-05-06T13:39:57.365Z" },
++    { url = "https://files.pythonhosted.org/packages/d0/cf/c873d91679f3a30bcf5e7ac280ce5573483e72295307685120d0d5ad3416/pydantic_core-2.46.4-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:fbdb89b3e1c94a30cc5edfce477c6e6a5dc4d8f84665b455c27582f211a1c72c", size = 2374464, upload-time = "2026-05-06T13:38:06.976Z" },
++    { url = "https://files.pythonhosted.org/packages/47/bd/6f2fc8188f31bf10590f1e98e7b306336161fac930a8c514cd7bd828c7dc/pydantic_core-2.46.4-cp312-cp312-win32.whl", hash = "sha256:9aa768456404a8bf48a4406685ac2bec8e72b62c69313734fa3b73cf33b3a894", size = 1974823, upload-time = "2026-05-06T13:40:47.985Z" },
++    { url = "https://files.pythonhosted.org/packages/40/8c/985c1d41ea1107c2534abd9870e4ed5c8e7669b5c308297835c001e7a1c4/pydantic_core-2.46.4-cp312-cp312-win_amd64.whl", hash = "sha256:e9c26f834c65f5752f3f06cb08cb86a913ceb7274d0db6e267808a708b46bc89", size = 2072919, upload-time = "2026-05-06T13:39:21.153Z" },
++    { url = "https://files.pythonhosted.org/packages/c4/ba/f463d006e0c47373ca7ec5e1a261c59dc01ef4d62b2657af925fb0deee3a/pydantic_core-2.46.4-cp312-cp312-win_arm64.whl", hash = "sha256:4fc73cb559bdb54b1134a706a2802a4cddd27a0633f5abb7e53056268751ac6a", size = 2027604, upload-time = "2026-05-06T13:39:03.753Z" },
++    { url = "https://files.pythonhosted.org/packages/51/a2/5d30b469c5267a17b39dec53208222f76a8d351dfac4af661888c5aee77d/pydantic_core-2.46.4-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:5d5902252db0d3cedf8d4a1bc68f70eeb430f7e4c7104c8c476753519b423008", size = 2106306, upload-time = "2026-05-06T13:37:48.029Z" },
++    { url = "https://files.pythonhosted.org/packages/c1/81/4fa520eaffa8bd7d1525e644cd6d39e7d60b1592bc5b516693c7340b50f1/pydantic_core-2.46.4-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:c94f0688e7b8d0a67abf40e57a7eaaecd17cc9586706a31b76c031f63df052b4", size = 1951906, upload-time = "2026-05-06T13:37:17.012Z" },
++    { url = "https://files.pythonhosted.org/packages/03/d5/fd02da45b659668b05923b17ba3a0100a0a3d5541e3bd8fcc4ecb711309e/pydantic_core-2.46.4-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f027324c56cd5406ca49c124b0db10e56c69064fec039acc571c29020cc87c76", size = 1976802, upload-time = "2026-05-06T13:37:35.113Z" },
++    { url = "https://files.pythonhosted.org/packages/21/f2/95727e1368be3d3ed485eaab7adbd7dda408f33f7a36e8b48e0144002b91/pydantic_core-2.46.4-cp313-cp313-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:e739fee756ba1010f8bcccb534252e85a35fe45ae92c295a06059ce58b74ccd3", size = 2052446, upload-time = "2026-05-06T13:37:12.313Z" },
++    { url = "https://files.pythonhosted.org/packages/9c/86/5d99feea3f77c7234b8718075b23db11532773c1a0dbd9b9490215dc2eeb/pydantic_core-2.46.4-cp313-cp313-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:9d56801be94b86a9da183e5f3766e6310752b99ff647e38b09a9500d88e46e76", size = 2232757, upload-time = "2026-05-06T13:39:01.149Z" },
++    { url = "https://files.pythonhosted.org/packages/d2/3a/508ac615935ef7588cf6d9e9b91309fdc2da751af865e02a9098de88258c/pydantic_core-2.46.4-cp313-cp313-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:2412e734dcb48da14d4e4006b82b46b74f2518b8a26ee7e58c6844a6cd6d03c4", size = 2309275, upload-time = "2026-05-06T13:37:41.406Z" },
++    { url = "https://files.pythonhosted.org/packages/07/f8/41db9de19d7987d6b04715a02b3b40aea467000275d9d758ffaa31af7d50/pydantic_core-2.46.4-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9551187363ffc0de2a00b2e47c25aeaeb1020b69b668762966df15fc5659dd5a", size = 2094467, upload-time = "2026-05-06T13:39:18.847Z" },
++    { url = "https://files.pythonhosted.org/packages/2c/e2/f35033184cb11d0052daf4416e8e10a502ea2ac006fc4f459aee872727d1/pydantic_core-2.46.4-cp313-cp313-manylinux_2_31_riscv64.whl", hash = "sha256:0186750b482eefa11d7f435892b09c5c606193ef3375bcf94aa00ae6bfb66262", size = 2134417, upload-time = "2026-05-06T13:40:17.944Z" },
++    { url = "https://files.pythonhosted.org/packages/7e/7b/6ceeb1cc90e193862f444ebe373d8fdf613f0a82572dde03fb10734c6c71/pydantic_core-2.46.4-cp313-cp313-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:5855698a4856556d86e8e6cd8434bc3ac0314ee8e12089ae0e143f64c6256e4e", size = 2179782, upload-time = "2026-05-06T13:40:32.618Z" },
++    { url = "https://files.pythonhosted.org/packages/5a/f2/c8d7773ede6af08036423a00ae0ceffce266c3c52a096c435d68c896083f/pydantic_core-2.46.4-cp313-cp313-musllinux_1_1_aarch64.whl", hash = "sha256:cbaf13819775b7f769bf4a1f066cb6df7a28d4480081a589828ef190226881cd", size = 2188782, upload-time = "2026-05-06T13:36:51.018Z" },
++    { url = "https://files.pythonhosted.org/packages/59/31/0c864784e31f09f05cdd87606f08923b9c9e7f6e51dd27f20f62f975ce9f/pydantic_core-2.46.4-cp313-cp313-musllinux_1_1_armv7l.whl", hash = "sha256:633147d34cf4550417f12e2b1a0383973bdf5cdfde212cb09e9a581cf10820be", size = 2328334, upload-time = "2026-05-06T13:40:37.764Z" },
++    { url = "https://files.pythonhosted.org/packages/c2/eb/4f6c8a41efa30baa755590f4141abf3a8c370fab610915733e74134a7270/pydantic_core-2.46.4-cp313-cp313-musllinux_1_1_x86_64.whl", hash = "sha256:82cf5301172168103724d49a1444d3378cb20cdee30b116a1bd6031236298a5d", size = 2372986, upload-time = "2026-05-06T13:39:34.152Z" },
++    { url = "https://files.pythonhosted.org/packages/5b/24/b375a480d53113860c299764bfe9f349a3dc9108b3adc0d7f0d786492ebf/pydantic_core-2.46.4-cp313-cp313-win32.whl", hash = "sha256:9fa8ae11da9e2b3126c6426f147e0fba88d96d65921799bb30c6abd1cb2c97fb", size = 1973693, upload-time = "2026-05-06T13:37:55.072Z" },
++    { url = "https://files.pythonhosted.org/packages/7e/e8/cff247591966f2d22ec8c003cd7587e27b7ba7b81ab2fb888e3ab75dc285/pydantic_core-2.46.4-cp313-cp313-win_amd64.whl", hash = "sha256:6b3ace8194b0e5204818c92802dcdca7fc6d88aabbb799d7c795540d9cd6d292", size = 2071819, upload-time = "2026-05-06T13:38:49.139Z" },
++    { url = "https://files.pythonhosted.org/packages/c6/1a/f4aee670d5670e9e148e0c82c7db98d780be566c6e6a97ee8035528ca0b3/pydantic_core-2.46.4-cp313-cp313-win_arm64.whl", hash = "sha256:184c081504d17f1c1066e430e117142b2c77d9448a97f7b65c6ac9fd9aee238d", size = 2027411, upload-time = "2026-05-06T13:40:45.796Z" },
++    { url = "https://files.pythonhosted.org/packages/8d/74/228a26ddad29c6672b805d9fd78e8d251cd04004fa7eed0e622096cd0250/pydantic_core-2.46.4-cp314-cp314-macosx_10_12_x86_64.whl", hash = "sha256:428e04521a40150c85216fc8b85e8d39fece235a9cf5e383761238c7fa9b96fb", size = 2102079, upload-time = "2026-05-06T13:38:41.019Z" },
++    { url = "https://files.pythonhosted.org/packages/ad/1f/8970b150a4b4365623ae00fc88603491f763c627311ae8031e3111356d6e/pydantic_core-2.46.4-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:23ace664830ee0bfe014a0c7bc248b1f7f25ed7ad103852c317624a1083af462", size = 1952179, upload-time = "2026-05-06T13:36:59.812Z" },
++    { url = "https://files.pythonhosted.org/packages/95/30/5211a831ae054928054b2f79731661087a2bc5c01e825c672b3a4a8f1b3e/pydantic_core-2.46.4-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ce5c1d2a8b27468f433ca974829c44060b8097eedc39933e3c206a90ee49c4a9", size = 1978926, upload-time = "2026-05-06T13:37:39.933Z" },
++    { url = "https://files.pythonhosted.org/packages/57/e9/689668733b1eb67adeef047db3c2e8788fcf65a7fd9c9e2b46b7744fe245/pydantic_core-2.46.4-cp314-cp314-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:7283d57845ecf5a163403eb0702dfc220cc4fbdd18919cb5ccea4f95ee1cdab4", size = 2046785, upload-time = "2026-05-06T13:38:01.995Z" },
++    { url = "https://files.pythonhosted.org/packages/60/d9/6715260422ff50a2109878fd24d948a6c3446bb2664f34ee78cd972b3acd/pydantic_core-2.46.4-cp314-cp314-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:8daafc69c93ee8a0204506a3b6b30f586ef54028f52aeeeb5c4cfc5184fd5914", size = 2228733, upload-time = "2026-05-06T13:40:50.371Z" },
++    { url = "https://files.pythonhosted.org/packages/18/ae/fdb2f64316afca925640f8e70bb1a564b0ec2721c1389e25b8eb4bf9a299/pydantic_core-2.46.4-cp314-cp314-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:cd2213145bcc2ba85884d0ac63d222fece9209678f77b9b4d76f054c561adb28", size = 2307534, upload-time = "2026-05-06T13:37:21.531Z" },
++    { url = "https://files.pythonhosted.org/packages/89/1d/8eff589b45bb8190a9d12c49cfad0f176a5cbd1534908a6b5125e2886239/pydantic_core-2.46.4-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7a5f930472650a82629163023e630d160863fce524c616f4e5186e5de9d9a49b", size = 2099732, upload-time = "2026-05-06T13:39:31.942Z" },
++    { url = "https://files.pythonhosted.org/packages/06/d5/ee5a3366637fee41dee51a1fc91562dcf12ddbc68fda34e6b253da2324bb/pydantic_core-2.46.4-cp314-cp314-manylinux_2_31_riscv64.whl", hash = "sha256:c1b3f518abeca3aa13c712fd202306e145abf59a18b094a6bafb2d2bbf59192c", size = 2129627, upload-time = "2026-05-06T13:37:25.033Z" },
++    { url = "https://files.pythonhosted.org/packages/94/33/2414be571d2c6a6c4d08be21f9292b6d3fdb08949a97b6dfe985017821db/pydantic_core-2.46.4-cp314-cp314-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:1a7dd0b3ee80d90150e3495a3a13ac34dbcbfd4f012996a6a1d8900e91b5c0fb", size = 2179141, upload-time = "2026-05-06T13:37:14.046Z" },
++    { url = "https://files.pythonhosted.org/packages/7b/79/7daa95be995be0eecc4cf75064cb33f9bbbfe3fe0158caf2f0d4a996a5c7/pydantic_core-2.46.4-cp314-cp314-musllinux_1_1_aarch64.whl", hash = "sha256:3fb702cd90b0446a3a1c5e470bfa0dd23c0233b676a9099ddcc964fa6ca13898", size = 2184325, upload-time = "2026-05-06T13:36:53.615Z" },
++    { url = "https://files.pythonhosted.org/packages/9f/cb/d0a382f5c0de8a222dc61c65348e0ce831b1f68e0a018450d31c2cace3a5/pydantic_core-2.46.4-cp314-cp314-musllinux_1_1_armv7l.whl", hash = "sha256:b8458003118a712e66286df6a707db01c52c0f52f7db8e4a38f0da1d3b94fc4e", size = 2323990, upload-time = "2026-05-06T13:40:29.971Z" },
++    { url = "https://files.pythonhosted.org/packages/05/db/d9ba624cc4a5aced1598e88c04fdbd8310c8a69b9d38b9a3d39ce3a61ed7/pydantic_core-2.46.4-cp314-cp314-musllinux_1_1_x86_64.whl", hash = "sha256:372429a130e469c9cd698925ce5fc50940b7a1336b0d82038e63d5bbc4edc519", size = 2369978, upload-time = "2026-05-06T13:37:23.027Z" },
++    { url = "https://files.pythonhosted.org/packages/f2/20/d15df15ba918c423461905802bfd2981c3af0bfa0e40d05e13edbfa48bc3/pydantic_core-2.46.4-cp314-cp314-win32.whl", hash = "sha256:85bb3611ff1802f3ee7fdd7dbff26b56f343fb432d57a4728fdd49b6ef35e2f4", size = 1966354, upload-time = "2026-05-06T13:38:03.499Z" },
++    { url = "https://files.pythonhosted.org/packages/fc/b6/6b8de4c0a7d7ab3004c439c80c5c1e0a3e8d78bbae19379b01960383d9e5/pydantic_core-2.46.4-cp314-cp314-win_amd64.whl", hash = "sha256:811ff8e9c313ab425368bcbb36e5c4ebd7108c2bbf4e4089cfbb0b01eff63fac", size = 2072238, upload-time = "2026-05-06T13:39:40.807Z" },
++    { url = "https://files.pythonhosted.org/packages/32/36/51eb763beec1f4cf59b1db243a7dcc39cbb41230f050a09b9d69faaf0a48/pydantic_core-2.46.4-cp314-cp314-win_arm64.whl", hash = "sha256:bfec22eab3c8cc2ceec0248aec886624116dc079afa027ecc8ad4a7e62010f8a", size = 2018251, upload-time = "2026-05-06T13:37:26.72Z" },
++    { url = "https://files.pythonhosted.org/packages/e8/91/855af51d625b23aa987116a19e231d2aaef9c4a415273ddc189b79a45fee/pydantic_core-2.46.4-cp314-cp314t-macosx_10_12_x86_64.whl", hash = "sha256:af8244b2bef6aaad6d92cda81372de7f8c8d36c9f0c3ea36e827c60e7d9467a0", size = 2099593, upload-time = "2026-05-06T13:39:47.682Z" },
++    { url = "https://files.pythonhosted.org/packages/fb/1b/8784a54c65edb5f49f0a14d6977cf1b209bba85a4c77445b255c2de58ab3/pydantic_core-2.46.4-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:5a4330cdbc57162e4b3aa303f588ba752257694c9c9be3e7ebb11b4aca659b5d", size = 1935226, upload-time = "2026-05-06T13:40:40.428Z" },
++    { url = "https://files.pythonhosted.org/packages/e8/e7/1955d28d1afc56dd4b3ad7cc0cf39df1b9852964cf16e5d13912756d6d6b/pydantic_core-2.46.4-cp314-cp314t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:29c61fc04a3d840155ff08e475a04809278972fe6aef51e2720554e96367e34b", size = 1974605, upload-time = "2026-05-06T13:37:32.029Z" },
++    { url = "https://files.pythonhosted.org/packages/93/e2/3fedbf0ba7a22850e6e9fd78117f1c0f10f950182344d8a6c535d468fdd8/pydantic_core-2.46.4-cp314-cp314t-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:c50f2528cf200c5eed56faf3f4e22fcd5f38c157a8b78576e6ba3168ec35f000", size = 2030777, upload-time = "2026-05-06T13:38:55.239Z" },
++    { url = "https://files.pythonhosted.org/packages/f8/61/46be275fcaaba0b4f5b9669dd852267ce1ff616592dccf7a7845588df091/pydantic_core-2.46.4-cp314-cp314t-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:0cbe8b01f948de4286c74cdd6c667aceb38f5c1e26f0693b3983d9d74887c65e", size = 2236641, upload-time = "2026-05-06T13:37:08.096Z" },
++    { url = "https://files.pythonhosted.org/packages/60/db/12e93e46a8bac9988be3c016860f83293daea8c716c029c9ace279036f2f/pydantic_core-2.46.4-cp314-cp314t-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:617d7e2ca7dcb8c5cf6bcb8c59b8832c94b36196bbf1cbd1bfb56ed341905edd", size = 2286404, upload-time = "2026-05-06T13:40:20.221Z" },
++    { url = "https://files.pythonhosted.org/packages/e2/4a/4d8b19008f38d31c53b8219cfedc2e3d5de5fe99d90076b7e767de29274f/pydantic_core-2.46.4-cp314-cp314t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7027560ee92211647d0d34e3f7cd6f50da56399d26a9c8ad0da286d3869a53f3", size = 2109219, upload-time = "2026-05-06T13:38:12.153Z" },
++    { url = "https://files.pythonhosted.org/packages/88/70/3cbc40978fefb7bb09c6708d40d4ad1a5d70fd7213c3d17f971de868ec1f/pydantic_core-2.46.4-cp314-cp314t-manylinux_2_31_riscv64.whl", hash = "sha256:f99626688942fb746e545232e7726926f3be91b5975f8b55327665fafda991c7", size = 2110594, upload-time = "2026-05-06T13:40:02.971Z" },
++    { url = "https://files.pythonhosted.org/packages/9d/20/b8d36736216e29491125531685b2f9e61aa5b4b2599893f8268551da3338/pydantic_core-2.46.4-cp314-cp314t-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:fc3e9034a63de20e15e8ade85358bc6efc614008cab72898b4b4952bea0509ff", size = 2159542, upload-time = "2026-05-06T13:39:27.506Z" },
++    { url = "https://files.pythonhosted.org/packages/1d/a2/367df868eb584dacf6bf82a389272406d7178e301c4ac82545ab98bc2dd9/pydantic_core-2.46.4-cp314-cp314t-musllinux_1_1_aarch64.whl", hash = "sha256:97e7cf2be5c77b7d1a9713a05605d49460d02c6078d38d8bef3cbe323c548424", size = 2168146, upload-time = "2026-05-06T13:38:31.93Z" },
++    { url = "https://files.pythonhosted.org/packages/c1/b8/4460f77f7e201893f649a29ab355dddd3beee8a97bcb1a320db414f9a06e/pydantic_core-2.46.4-cp314-cp314t-musllinux_1_1_armv7l.whl", hash = "sha256:3bf92c5d0e00fefaab325a4d27828fe6b6e2a21848686b5b60d2d9eeb09d76c6", size = 2306309, upload-time = "2026-05-06T13:37:44.717Z" },
++    { url = "https://files.pythonhosted.org/packages/64/c4/be2639293acd87dc8ddbcec41a73cee9b2ebf996fe6d892a1a74e88ad3f7/pydantic_core-2.46.4-cp314-cp314t-musllinux_1_1_x86_64.whl", hash = "sha256:3ecbc122d18468d06ca279dc26a8c2e2d5acb10943bb35e36ae92096dc3b5565", size = 2369736, upload-time = "2026-05-06T13:37:05.645Z" },
++    { url = "https://files.pythonhosted.org/packages/30/a6/9f9f380dbb301f67023bf8f707aaa75daadf84f7152d95c410fd7e81d994/pydantic_core-2.46.4-cp314-cp314t-win32.whl", hash = "sha256:e846ae7835bf0703ae43f534ab79a867146dadd59dc9ca5c8b53d5c8f7c9ef02", size = 1955575, upload-time = "2026-05-06T13:38:51.116Z" },
++    { url = "https://files.pythonhosted.org/packages/40/1f/f1eb9eb350e795d1af8586289746f5c5677d16043040d63710e22abc43c9/pydantic_core-2.46.4-cp314-cp314t-win_amd64.whl", hash = "sha256:2108ba5c1c1eca18030634489dc544844144ee36357f2f9f780b93e7ddbb44b5", size = 2051624, upload-time = "2026-05-06T13:38:21.672Z" },
++    { url = "https://files.pythonhosted.org/packages/f6/d2/42dd53d0a85c27606f316d3aa5d2869c4e8470a5ed6dec30e4a1abe19192/pydantic_core-2.46.4-cp314-cp314t-win_arm64.whl", hash = "sha256:4fcbe087dbc2068af7eda3aa87634eba216dbda64d1ae73c8684b621d33f6596", size = 2017325, upload-time = "2026-05-06T13:40:52.723Z" },
++    { url = "https://files.pythonhosted.org/packages/9d/1d/8987ad40f65ae1432753072f214fb5c74fe47ffbd0698bb9cbbb585664f8/pydantic_core-2.46.4-graalpy312-graalpy250_312_native-macosx_10_12_x86_64.whl", hash = "sha256:1d8ba486450b14f3b1d63bc521d410ec7565e52f887b9fb671791886436a42f7", size = 2095527, upload-time = "2026-05-06T13:39:52.283Z" },
++    { url = "https://files.pythonhosted.org/packages/64/d3/84c282a7eee1d3ac4c0377546ef5a1ea436ce26840d9ac3b7ed54a377507/pydantic_core-2.46.4-graalpy312-graalpy250_312_native-macosx_11_0_arm64.whl", hash = "sha256:3009f12e4e90b7f88b4f9adb1b0c4a3d58fe7820f3238c190047209d148026df", size = 1936024, upload-time = "2026-05-06T13:40:15.671Z" },
++    { url = "https://files.pythonhosted.org/packages/d7/ca/eac61596cdeb4d7e174d3dc0bd8a6238f14f75f97a24e7b7db4c7e7340a0/pydantic_core-2.46.4-graalpy312-graalpy250_312_native-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ad785e92e6dc634c21555edc8bd6b64957ab844541bcb96a1366c202951ae526", size = 1990696, upload-time = "2026-05-06T13:38:34.717Z" },
++    { url = "https://files.pythonhosted.org/packages/fa/c3/7c8b240552251faf6b3a957db200fcfbbcec36763c050428b601e0c9b83b/pydantic_core-2.46.4-graalpy312-graalpy250_312_native-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:00c603d540afdd6b80eb39f078f33ebd46211f02f33e34a32d9f053bba711de0", size = 2147590, upload-time = "2026-05-06T13:39:29.883Z" },
++]
++
++[[package]]
++name = "pydantic-settings"
++version = "2.14.2"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "pydantic" },
++    { name = "python-dotenv" },
++    { name = "typing-inspection" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/5c/b5/8f48e906c3e0205276e8bd8cb7512217a87b2685304d64be27cad5b3019f/pydantic_settings-2.14.2.tar.gz", hash = "sha256:c19dd64b19097f1de80184f0cc7b0272a13ae6e170cbf240a3e27e381ed14a5f", size = 237700, upload-time = "2026-06-19T13:44:56.324Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/77/c1/6e422f34e569cf8e18df68d1939c81c099d2b61e4f7d9621c8a77560799c/pydantic_settings-2.14.2-py3-none-any.whl", hash = "sha256:a20c97b37910b6550d5ea50fbcc2d4187defe58cd57070b73863d069419c9440", size = 61715, upload-time = "2026-06-19T13:44:55.02Z" },
++]
++
++[[package]]
++name = "pygments"
++version = "2.20.0"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/c3/b2/bc9c9196916376152d655522fdcebac55e66de6603a76a02bca1b6414f6c/pygments-2.20.0.tar.gz", hash = "sha256:6757cd03768053ff99f3039c1a36d6c0aa0b263438fcab17520b30a303a82b5f", size = 4955991, upload-time = "2026-03-29T13:29:33.898Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/f4/7e/a72dd26f3b0f4f2bf1dd8923c85f7ceb43172af56d63c7383eb62b332364/pygments-2.20.0-py3-none-any.whl", hash = "sha256:81a9e26dd42fd28a23a2d169d86d7ac03b46e2f8b59ed4698fb4785f946d0176", size = 1231151, upload-time = "2026-03-29T13:29:30.038Z" },
++]
++
++[[package]]
++name = "pymysql"
++version = "1.2.0"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/c9/bc/1c6a92f385940f727daeecf3bacaf186e03875dff57197801046c583bcf0/pymysql-1.2.0.tar.gz", hash = "sha256:6c7b17ca686988104d7426c27895b455cdeea3e9d3ceb1270f0c3704fead8c33", size = 49021, upload-time = "2026-05-19T08:26:22.302Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/c4/bd/2534e130295c8cfd4f0a2e31623baab7502278f1e97bcfe61db75656a77f/pymysql-1.2.0-py3-none-any.whl", hash = "sha256:62169ce6d5510f08e140c5e7990ee884a9764024e4a9a27b2cc11f1099322ae0", size = 45716, upload-time = "2026-05-19T08:26:20.974Z" },
++]
++
++[[package]]
++name = "pytest"
++version = "9.1.1"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "colorama", marker = "sys_platform == 'win32'" },
++    { name = "iniconfig" },
++    { name = "packaging" },
++    { name = "pluggy" },
++    { name = "pygments" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/e4/47/b9efed96c114afcfa3c9d3fe98a76a1d14c74a9e266d397cf6eb64be5e01/pytest-9.1.1.tar.gz", hash = "sha256:1088fbde8f2b49d95a549a195707afa7a76a3ce9bcadc26b6d71f0ffda5fe313", size = 1636369, upload-time = "2026-06-19T10:58:32.857Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/24/25/1de2678b631f5a49215c6c96fff41ba892b0a34df68d6d80292b1b48aa7f/pytest-9.1.1-py3-none-any.whl", hash = "sha256:37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c", size = 386536, upload-time = "2026-06-19T10:58:31.347Z" },
++]
++
++[[package]]
++name = "pytest-asyncio"
++version = "1.4.0"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "pytest" },
++    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/43/7c/d36d04db312ecf4298932ef77e6e4a9e8ad017906e24e34f0b0c361a2473/pytest_asyncio-1.4.0.tar.gz", hash = "sha256:c6c0d2259945122819f171a32ecea2c349ead889ee28176caaf492143424be42", size = 58514, upload-time = "2026-05-26T09:56:04.083Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/03/e2/08a497ef684b88559c9cc5f4ad53a37e7b99e727094a86d6ea32536d5d3c/pytest_asyncio-1.4.0-py3-none-any.whl", hash = "sha256:933ca923a23075a87fb7070c0ec272a6848489824d887c85c812670932835aa1", size = 16930, upload-time = "2026-05-26T09:56:02.576Z" },
++]
++
++[[package]]
++name = "python-dotenv"
++version = "1.2.2"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/82/ed/0301aeeac3e5353ef3d94b6ec08bbcabd04a72018415dcb29e588514bba8/python_dotenv-1.2.2.tar.gz", hash = "sha256:2c371a91fbd7ba082c2c1dc1f8bf89ca22564a087c2c287cd9b662adde799cf3", size = 50135, upload-time = "2026-03-01T16:00:26.196Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/0b/d7/1959b9648791274998a9c3526f6d0ec8fd2233e4d4acce81bbae76b44b2a/python_dotenv-1.2.2-py3-none-any.whl", hash = "sha256:1d8214789a24de455a8b8bd8ae6fe3c6b69a5e3d64aa8a8e5d68e694bbcb285a", size = 22101, upload-time = "2026-03-01T16:00:25.09Z" },
++]
++
++[[package]]
++name = "starlette"
++version = "1.3.1"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "anyio" },
++    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/eb/e3/7c1dc7381d9f8ab7d854328ebfa884e62cb3f3d8549ddfd37c7814f42afa/starlette-1.3.1.tar.gz", hash = "sha256:05d0213193f2fbaae60e2ecb593b4add4262ad4e46536b54abe36f11a71724e0", size = 2703240, upload-time = "2026-06-12T09:23:11.602Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/ec/bb/2799cc2ede3ed41131f8975621e7213dfc7ef4acbbaadfa440f32500c370/starlette-1.3.1-py3-none-any.whl", hash = "sha256:c7372aae11c3c3f26a42df7bd626cec2f47d03483d261d369516a615a53714c6", size = 73632, upload-time = "2026-06-12T09:23:10.017Z" },
++]
++
++[[package]]
++name = "typing-extensions"
++version = "4.16.0"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/f6/cc/6253133b5bb138fc3306cebfbda2c520f545d36b5be2c7255cc528bb45d6/typing_extensions-4.16.0.tar.gz", hash = "sha256:dc983d19a509c94dba722ee6abd33940f7c05a89e243c47e907eb4db6f1a43e5", size = 113555, upload-time = "2026-07-02T08:40:05.92Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl", hash = "sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8", size = 45571, upload-time = "2026-07-02T08:40:04.659Z" },
++]
++
++[[package]]
++name = "typing-inspection"
++version = "0.4.2"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "typing-extensions" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/55/e3/70399cb7dd41c10ac53367ae42139cf4b1ca5f36bb3dc6c9d33acdb43655/typing_inspection-0.4.2.tar.gz", hash = "sha256:ba561c48a67c5958007083d386c3295464928b01faa735ab8547c5692e87f464", size = 75949, upload-time = "2025-10-01T02:14:41.687Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/dc/9b/47798a6c91d8bdb567fe2698fe81e0c6b7cb7ef4d13da4114b41d239f65d/typing_inspection-0.4.2-py3-none-any.whl", hash = "sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7", size = 14611, upload-time = "2025-10-01T02:14:40.154Z" },
++]
++
++[[package]]
++name = "uvicorn"
++version = "0.50.2"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "click" },
++    { name = "h11" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/9f/f6/cc9aadc0e481344a42095d222bfa764122fb8cfba708d1922917bd8bfb01/uvicorn-0.50.2.tar.gz", hash = "sha256:b92bf03509b82bcb9d49e7335b4fd364518ad021c2dc18b4e6a2fec8c955a0bb", size = 93716, upload-time = "2026-07-06T10:38:31.984Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/aa/f0/7c228ee10c7ab8fd3a21d06579a6f7c6075c6ce72594a20fb5d2f206ff24/uvicorn-0.50.2-py3-none-any.whl", hash = "sha256:4ae72a385630bcc17a0adb8290f26c993865e0b43a2114c2aab96420172c056a", size = 72846, upload-time = "2026-07-06T10:38:30.543Z" },
++]
+commit 49c51128df1281b68194e1ff647138353aaf0f75
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Tue Jul 7 23:48:44 2026 +0800
+
+    feat: SQLite 数据库层
+
+ database.py            | 53 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ tests/test_database.py | 35 +++++++++++++++++++++++++++++++++
+ 2 files changed, 88 insertions(+)
+commit 49c51128df1281b68194e1ff647138353aaf0f75
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Tue Jul 7 23:48:44 2026 +0800
+
+    feat: SQLite 数据库层
+
+diff --git a/database.py b/database.py
+new file mode 100644
+index 0000000..2f7ec43
+--- /dev/null
++++ b/database.py
+@@ -0,0 +1,53 @@
++# database.py
++import aiosqlite
++from contextlib import asynccontextmanager
++from pathlib import Path
++
++# 确保 data 目录存在
++DATA_DIR = Path("data")
++DATA_DIR.mkdir(exist_ok=True)
++
++DEFAULT_DB_PATH = DATA_DIR / "monitor.db"
++
++
++async def init_db(db_path: str = None):
++    """初始化数据库，创建表结构"""
++    if db_path is None:
++        db_path = str(DEFAULT_DB_PATH)
++
++    async with aiosqlite.connect(db_path) as db:
++        await db.execute("""
++            CREATE TABLE IF NOT EXISTS mysql_metrics (
++                id INTEGER PRIMARY KEY AUTOINCREMENT,
++                timestamp DATETIME NOT NULL DEFAULT (datetime('now', 'localtime')),
++                threads_connected INTEGER,
++                threads_running INTEGER,
++                uptime INTEGER,
++                slow_queries INTEGER,
++                com_select INTEGER,
++                com_insert INTEGER,
++                com_update INTEGER,
++                com_delete INTEGER,
++                select_qps REAL,
++                insert_qps REAL,
++                update_qps REAL,
++                delete_qps REAL
++            )
++        """)
++        await db.execute(
++            "CREATE INDEX IF NOT EXISTS idx_timestamp ON mysql_metrics(timestamp)"
++        )
++        await db.commit()
++
++
++@asynccontextmanager
++async def get_db(db_path: str = None):
++    """获取数据库连接的上下文管理器"""
++    if db_path is None:
++        db_path = str(DEFAULT_DB_PATH)
++
++    db = await aiosqlite.connect(db_path)
++    try:
++        yield db
++    finally:
++        await db.close()
+diff --git a/tests/test_database.py b/tests/test_database.py
+new file mode 100644
+index 0000000..80bddaa
+--- /dev/null
++++ b/tests/test_database.py
+@@ -0,0 +1,35 @@
++# tests/test_database.py
++import pytest
++import aiosqlite
++import os
++from database import init_db, get_db
++
++
++@pytest.fixture
++def db_path(tmp_path):
++    """创建临时数据库路径"""
++    return str(tmp_path / "test.db")
++
++
++@pytest.mark.asyncio
++async def test_init_db_creates_table(db_path):
++    """测试初始化数据库创建表"""
++    await init_db(db_path)
++
++    async with aiosqlite.connect(db_path) as db:
++        cursor = await db.execute(
++            "SELECT name FROM sqlite_master WHERE type='table' AND name='mysql_metrics'"
++        )
++        table = await cursor.fetchone()
++        assert table is not None
++
++
++@pytest.mark.asyncio
++async def test_get_db_returns_connection(db_path):
++    """测试获取数据库连接"""
++    await init_db(db_path)
++
++    async with get_db(db_path) as db:
++        cursor = await db.execute("SELECT 1")
++        result = await cursor.fetchone()
++        assert result[0] == 1
+commit fad3414c900af1842b55ef82120c0cb89a9cec16
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Tue Jul 7 23:52:20 2026 +0800
+
+    @
+    feat: 指标数据模型
+    
+    - 创建 models/__init__.py 和 models/metrics.py
+    - 实现 save_metrics、get_latest_metrics、get_metrics_history、cleanup_old_metrics
+    - 添加 tests/test_metrics.py 测试覆盖全部4个函数
+    - 修复异步 fixture 使用 pytest_asyncio.fixture 装饰器
+    @
+
+ models/__init__.py    |   1 +
+ models/metrics.py     |  72 +++++++++++++++++++++++++++++++++
+ tests/test_metrics.py | 110 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 183 insertions(+)
+commit fad3414c900af1842b55ef82120c0cb89a9cec16
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Tue Jul 7 23:52:20 2026 +0800
+
+    @
+    feat: 指标数据模型
+    
+    - 创建 models/__init__.py 和 models/metrics.py
+    - 实现 save_metrics、get_latest_metrics、get_metrics_history、cleanup_old_metrics
+    - 添加 tests/test_metrics.py 测试覆盖全部4个函数
+    - 修复异步 fixture 使用 pytest_asyncio.fixture 装饰器
+    @
+
+diff --git a/models/__init__.py b/models/__init__.py
+new file mode 100644
+index 0000000..c09de5a
+--- /dev/null
++++ b/models/__init__.py
+@@ -0,0 +1 @@
++# models/__init__.py
+diff --git a/models/metrics.py b/models/metrics.py
+new file mode 100644
+index 0000000..364d421
+--- /dev/null
++++ b/models/metrics.py
+@@ -0,0 +1,72 @@
++# models/metrics.py
++import aiosqlite
++from datetime import datetime, timedelta
++from typing import Optional, List, Dict, Any
++
++
++async def save_metrics(db_path: str, metrics: Dict[str, Any]) -> None:
++    """保存一条指标记录"""
++    import aiosqlite
++    async with aiosqlite.connect(db_path) as db:
++        await db.execute("""
++            INSERT INTO mysql_metrics (
++                threads_connected, threads_running, uptime, slow_queries,
++                com_select, com_insert, com_update, com_delete,
++                select_qps, insert_qps, update_qps, delete_qps
++            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
++        """, (
++            metrics["threads_connected"],
++            metrics["threads_running"],
++            metrics["uptime"],
++            metrics["slow_queries"],
++            metrics["com_select"],
++            metrics["com_insert"],
++            metrics["com_update"],
++            metrics["com_delete"],
++            metrics["select_qps"],
++            metrics["insert_qps"],
++            metrics["update_qps"],
++            metrics["delete_qps"],
++        ))
++        await db.commit()
++
++
++async def get_latest_metrics(db_path: str) -> Optional[Dict[str, Any]]:
++    """获取最新一条指标"""
++    import aiosqlite
++    async with aiosqlite.connect(db_path) as db:
++        db.row_factory = aiosqlite.Row
++        cursor = await db.execute(
++            "SELECT * FROM mysql_metrics ORDER BY id DESC LIMIT 1"
++        )
++        row = await cursor.fetchone()
++        if row:
++            return dict(row)
++        return None
++
++
++async def get_metrics_history(db_path: str, hours: int = 24) -> List[Dict[str, Any]]:
++    """获取最近 N 小时的指标历史"""
++    import aiosqlite
++    async with aiosqlite.connect(db_path) as db:
++        db.row_factory = aiosqlite.Row
++        since = datetime.now() - timedelta(hours=hours)
++        cursor = await db.execute(
++            "SELECT * FROM mysql_metrics WHERE timestamp >= ? ORDER BY timestamp",
++            (since.strftime("%Y-%m-%d %H:%M:%S"),)
++        )
++        rows = await cursor.fetchall()
++        return [dict(row) for row in rows]
++
++
++async def cleanup_old_metrics(db_path: str, retention_days: int = 30) -> int:
++    """清理超过保留天数的旧数据，返回删除的行数"""
++    import aiosqlite
++    async with aiosqlite.connect(db_path) as db:
++        cutoff = datetime.now() - timedelta(days=retention_days)
++        cursor = await db.execute(
++            "DELETE FROM mysql_metrics WHERE timestamp < ?",
++            (cutoff.strftime("%Y-%m-%d %H:%M:%S"),)
++        )
++        await db.commit()
++        return cursor.rowcount
+diff --git a/tests/test_metrics.py b/tests/test_metrics.py
+new file mode 100644
+index 0000000..9da946f
+--- /dev/null
++++ b/tests/test_metrics.py
+@@ -0,0 +1,110 @@
++# tests/test_metrics.py
++import pytest
++import pytest_asyncio
++import asyncio
++from datetime import datetime, timedelta
++from database import init_db
++from models.metrics import (
++    save_metrics,
++    get_latest_metrics,
++    get_metrics_history,
++    cleanup_old_metrics,
++)
++
++
++@pytest_asyncio.fixture
++async def db(tmp_path):
++    """创建测试数据库"""
++    db_path = str(tmp_path / "test.db")
++    await init_db(db_path)
++    return db_path
++
++
++@pytest.mark.asyncio
++async def test_save_and_get_latest_metrics(db):
++    """测试保存和获取最新指标"""
++    metrics = {
++        "threads_connected": 10,
++        "threads_running": 2,
++        "uptime": 3600,
++        "slow_queries": 5,
++        "com_select": 1000,
++        "com_insert": 100,
++        "com_update": 50,
++        "com_delete": 10,
++        "select_qps": 16.67,
++        "insert_qps": 1.67,
++        "update_qps": 0.83,
++        "delete_qps": 0.17,
++    }
++
++    await save_metrics(db, metrics)
++    latest = await get_latest_metrics(db)
++
++    assert latest is not None
++    assert latest["threads_connected"] == 10
++    assert latest["select_qps"] == 16.67
++
++
++@pytest.mark.asyncio
++async def test_get_metrics_history(db):
++    """测试获取指标历史"""
++    # 插入多条记录
++    for i in range(5):
++        metrics = {
++            "threads_connected": 10 + i,
++            "threads_running": 2,
++            "uptime": 3600 + i * 60,
++            "slow_queries": 5,
++            "com_select": 1000 + i * 100,
++            "com_insert": 100,
++            "com_update": 50,
++            "com_delete": 10,
++            "select_qps": 16.67,
++            "insert_qps": 1.67,
++            "update_qps": 0.83,
++            "delete_qps": 0.17,
++        }
++        await save_metrics(db, metrics)
++
++    history = await get_metrics_history(db, hours=1)
++    assert len(history) == 5
++
++
++@pytest.mark.asyncio
++async def test_cleanup_old_metrics(db):
++    """测试清理过期数据"""
++    # 插入一条旧数据（手动设置 timestamp）
++    metrics = {
++        "threads_connected": 10,
++        "threads_running": 2,
++        "uptime": 3600,
++        "slow_queries": 5,
++        "com_select": 1000,
++        "com_insert": 100,
++        "com_update": 50,
++        "com_delete": 10,
++        "select_qps": 16.67,
++        "insert_qps": 1.67,
++        "update_qps": 0.83,
++        "delete_qps": 0.17,
++    }
++    await save_metrics(db, metrics)
++
++    # 手动修改 timestamp 为 31 天前
++    import aiosqlite
++    async with aiosqlite.connect(db) as conn:
++        old_time = datetime.now() - timedelta(days=31)
++        await conn.execute(
++            "UPDATE mysql_metrics SET timestamp = ?",
++            (old_time.strftime("%Y-%m-%d %H:%M:%S"),)
++        )
++        await conn.commit()
++
++    # 清理 30 天前的数据
++    deleted = await cleanup_old_metrics(db, retention_days=30)
++    assert deleted == 1
++
++    # 验证数据已删除
++    latest = await get_latest_metrics(db)
++    assert latest is None
+commit 22e421eefc9bfff288e9c8e9019b224ab85ec3af
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Tue Jul 7 23:55:38 2026 +0800
+
+    feat: MySQL 采集器
+
+ collectors/__init__.py        |  0
+ collectors/mysql_collector.py | 75 +++++++++++++++++++++++++++++++++++++++++++
+ tests/test_collector.py       | 71 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 146 insertions(+)
+commit 22e421eefc9bfff288e9c8e9019b224ab85ec3af
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Tue Jul 7 23:55:38 2026 +0800
+
+    feat: MySQL 采集器
+
+diff --git a/collectors/__init__.py b/collectors/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/collectors/mysql_collector.py b/collectors/mysql_collector.py
+new file mode 100644
+index 0000000..a4f1898
+--- /dev/null
++++ b/collectors/mysql_collector.py
+@@ -0,0 +1,75 @@
++# collectors/mysql_collector.py
++import aiomysql
++import logging
++from typing import Dict, Any, Optional
++
++logger = logging.getLogger(__name__)
++
++
++class MySQLCollector:
++    """MySQL 指标采集器"""
++
++    def __init__(self, config):
++        self.config = config
++        self.pool: Optional[aiomysql.Pool] = None
++
++    async def connect(self):
++        """创建连接池"""
++        try:
++            self.pool = await aiomysql.create_pool(
++                host=self.config.MYSQL_HOST,
++                port=self.config.MYSQL_PORT,
++                user=self.config.MYSQL_USER,
++                password=self.config.MYSQL_PASSWORD,
++                db=self.config.MYSQL_DATABASE,
++                minsize=1,
++                maxsize=2,
++            )
++            logger.info("MySQL 连接池创建成功")
++        except Exception as e:
++            logger.error(f"MySQL 连接失败: {e}")
++            raise
++
++    async def close(self):
++        """关闭连接池"""
++        if self.pool:
++            self.pool.close()
++            await self.pool.wait_closed()
++
++    async def collect(self) -> Dict[str, Any]:
++        """采集 MySQL 指标"""
++        if not self.pool:
++            await self.connect()
++
++        async with self.pool.acquire() as conn:
++            async with conn.cursor() as cursor:
++                await cursor.execute("SHOW GLOBAL STATUS")
++                rows = await cursor.fetchall()
++                status_data = {row[0]: row[1] for row in rows}
++
++        metrics = self._parse_status(status_data)
++        return metrics
++
++    def _parse_status(self, status_data: Dict[str, str]) -> Dict[str, Any]:
++        """解析 MySQL 状态数据"""
++        return {
++            "threads_connected": int(status_data.get("Threads_connected", 0)),
++            "threads_running": int(status_data.get("Threads_running", 0)),
++            "uptime": int(status_data.get("Uptime", 0)),
++            "slow_queries": int(status_data.get("Slow_queries", 0)),
++            "com_select": int(status_data.get("Com_select", 0)),
++            "com_insert": int(status_data.get("Com_insert", 0)),
++            "com_update": int(status_data.get("Com_update", 0)),
++            "com_delete": int(status_data.get("Com_delete", 0)),
++        }
++
++    def _calculate_qps(
++        self, current: Dict[str, int], previous: Dict[str, int], interval: int
++    ) -> Dict[str, float]:
++        """计算各类 QPS"""
++        return {
++            "select_qps": (current["com_select"] - previous["com_select"]) / interval,
++            "insert_qps": (current["com_insert"] - previous["com_insert"]) / interval,
++            "update_qps": (current["com_update"] - previous["com_update"]) / interval,
++            "delete_qps": (current["com_delete"] - previous["com_delete"]) / interval,
++        }
+diff --git a/tests/test_collector.py b/tests/test_collector.py
+new file mode 100644
+index 0000000..4bfea47
+--- /dev/null
++++ b/tests/test_collector.py
+@@ -0,0 +1,71 @@
++# tests/test_collector.py
++import pytest
++from unittest.mock import AsyncMock, patch, MagicMock
++from collectors.mysql_collector import MySQLCollector
++
++
++@pytest.fixture
++def mock_config():
++    """模拟配置"""
++    config = MagicMock()
++    config.MYSQL_HOST = "localhost"
++    config.MYSQL_PORT = 3306
++    config.MYSQL_USER = "test"
++    config.MYSQL_PASSWORD = "test"
++    config.MYSQL_DATABASE = "mysql"
++    return config
++
++
++@pytest.mark.asyncio
++async def test_collector_parse_status(mock_config):
++    """测试解析 MySQL 状态"""
++    collector = MySQLCollector(mock_config)
++
++    # 模拟 SHOW GLOBAL STATUS 返回
++    status_data = {
++        "Threads_connected": "10",
++        "Threads_running": "2",
++        "Uptime": "3600",
++        "Slow_queries": "5",
++        "Com_select": "1000",
++        "Com_insert": "100",
++        "Com_update": "50",
++        "Com_delete": "10",
++    }
++
++    metrics = collector._parse_status(status_data)
++
++    assert metrics["threads_connected"] == 10
++    assert metrics["threads_running"] == 2
++    assert metrics["uptime"] == 3600
++    assert metrics["slow_queries"] == 5
++    assert metrics["com_select"] == 1000
++
++
++@pytest.mark.asyncio
++async def test_collector_calculate_qps(mock_config):
++    """测试计算 QPS"""
++    collector = MySQLCollector(mock_config)
++
++    current = {
++        "com_select": 1060,
++        "com_insert": 110,
++        "com_update": 55,
++        "com_delete": 12,
++    }
++
++    previous = {
++        "com_select": 1000,
++        "com_insert": 100,
++        "com_update": 50,
++        "com_delete": 10,
++    }
++
++    interval = 60  # 秒
++
++    qps = collector._calculate_qps(current, previous, interval)
++
++    assert qps["select_qps"] == pytest.approx(1.0)
++    assert qps["insert_qps"] == pytest.approx(0.1667, rel=0.01)
++    assert qps["update_qps"] == pytest.approx(0.0833, rel=0.01)
++    assert qps["delete_qps"] == pytest.approx(0.0333, rel=0.01)
+commit 414b55cd95263f463a31310d94f916ea9c3e1ec8
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Tue Jul 7 23:59:04 2026 +0800
+
+    feat: FastAPI 主应用与后台采集任务
+
+ main.py             | 122 +++++++++++++++++++++++++++++++++++++++++++++++++---
+ routes/__init__.py  |   1 +
+ routes/api.py       |   5 +++
+ routes/dashboard.py |   5 +++
+ static/.gitkeep     |   0
+ 5 files changed, 126 insertions(+), 7 deletions(-)
+commit 414b55cd95263f463a31310d94f916ea9c3e1ec8
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Tue Jul 7 23:59:04 2026 +0800
+
+    feat: FastAPI 主应用与后台采集任务
+
+diff --git a/main.py b/main.py
+index 6d7c6d9..384035d 100644
+--- a/main.py
++++ b/main.py
+@@ -1,13 +1,121 @@
++# main.py
++import asyncio
++import logging
++from contextlib import asynccontextmanager
+ from fastapi import FastAPI
++from fastapi.staticfiles import StaticFiles
+ 
+-app = FastAPI()
++from config import config
++from database import init_db, DEFAULT_DB_PATH
++from models.metrics import save_metrics, get_latest_metrics, cleanup_old_metrics
++from collectors.mysql_collector import MySQLCollector
++from routes import dashboard, api
+ 
++logging.basicConfig(level=logging.INFO)
++logger = logging.getLogger(__name__)
+ 
+-@app.get("/")
+-async def root():
+-    return {"message": "Hello World"}
++# 全局状态
++collector: MySQLCollector = None
++collect_task: asyncio.Task = None
++consecutive_failures: int = 0
++last_success_time: str = None
+ 
+ 
+-@app.get("/hello/{name}")
+-async def say_hello(name: str):
+-    return {"message": f"Hello {name}"}
++async def collect_loop():
++    """后台采集循环"""
++    global consecutive_failures, last_success_time
++
++    previous_metrics = None
++
++    while True:
++        try:
++            # 采集当前指标
++            current_metrics = await collector.collect()
++
++            # 计算 QPS
++            if previous_metrics:
++                qps = collector._calculate_qps(
++                    current_metrics,
++                    previous_metrics,
++                    config.COLLECT_INTERVAL
++                )
++                current_metrics.update(qps)
++            else:
++                # 首次采集，QPS 为 None
++                current_metrics.update({
++                    "select_qps": None,
++                    "insert_qps": None,
++                    "update_qps": None,
++                    "delete_qps": None,
++                })
++
++            # 保存到数据库
++            await save_metrics(str(DEFAULT_DB_PATH), current_metrics)
++
++            # 更新状态
++            previous_metrics = current_metrics
++            consecutive_failures = 0
++            last_success_time = current_metrics.get("timestamp")
++
++            logger.info("指标采集成功")
++
++        except Exception as e:
++            consecutive_failures += 1
++            logger.error(f"采集失败（连续失败 {consecutive_failures} 次）: {e}")
++
++        await asyncio.sleep(config.COLLECT_INTERVAL)
++
++
++@asynccontextmanager
++async def lifespan(app: FastAPI):
++    """应用生命周期管理"""
++    global collector, collect_task
++
++    # 启动时初始化
++    logger.info("正在初始化数据库...")
++    await init_db()
++
++    # 清理过期数据
++    deleted = await cleanup_old_metrics(str(DEFAULT_DB_PATH), config.RETENTION_DAYS)
++    if deleted > 0:
++        logger.info(f"已清理 {deleted} 条过期数据")
++
++    # 创建采集器
++    logger.info("正在连接 MySQL...")
++    collector = MySQLCollector(config)
++
++    # 启动后台采集任务
++    logger.info(f"启动后台采集任务（间隔 {config.COLLECT_INTERVAL} 秒）...")
++    collect_task = asyncio.create_task(collect_loop())
++
++    yield
++
++    # 关闭时清理
++    if collect_task:
++        collect_task.cancel()
++        try:
++            await collect_task
++        except asyncio.CancelledError:
++            pass
++
++    if collector:
++        await collector.close()
++
++    logger.info("应用已关闭")
++
++
++# 创建 FastAPI 应用
++app = FastAPI(title="Atlas MySQL Monitor", lifespan=lifespan)
++
++# 挂载静态文件
++app.mount("/static", StaticFiles(directory="static"), name="static")
++
++# 注册路由
++app.include_router(dashboard.router)
++app.include_router(api.router)
++
++
++@app.get("/health")
++async def health():
++    """健康检查"""
++    return {"status": "ok"}
+diff --git a/routes/__init__.py b/routes/__init__.py
+new file mode 100644
+index 0000000..5bdc97e
+--- /dev/null
++++ b/routes/__init__.py
+@@ -0,0 +1 @@
++# routes 包初始化
+diff --git a/routes/api.py b/routes/api.py
+new file mode 100644
+index 0000000..41f9f08
+--- /dev/null
++++ b/routes/api.py
+@@ -0,0 +1,5 @@
++# routes/api.py
++# API 路由 - 将在后续任务中实现
++from fastapi import APIRouter
++
++router = APIRouter()
+diff --git a/routes/dashboard.py b/routes/dashboard.py
+new file mode 100644
+index 0000000..2edec30
+--- /dev/null
++++ b/routes/dashboard.py
+@@ -0,0 +1,5 @@
++# routes/dashboard.py
++# Dashboard 路由 - 将在后续任务中实现
++from fastapi import APIRouter
++
++router = APIRouter()
+diff --git a/static/.gitkeep b/static/.gitkeep
+new file mode 100644
+index 0000000..e69de29
+commit a8616af90757d14418e740b41d467b92839d2098
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Wed Jul 8 00:02:03 2026 +0800
+
+    feat: API 路由
+
+ routes/api.py | 68 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 65 insertions(+), 3 deletions(-)
+commit a8616af90757d14418e740b41d467b92839d2098
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Wed Jul 8 00:02:03 2026 +0800
+
+    feat: API 路由
+
+diff --git a/routes/api.py b/routes/api.py
+index 41f9f08..e2412a5 100644
+--- a/routes/api.py
++++ b/routes/api.py
+@@ -1,5 +1,67 @@
+ # routes/api.py
+-# API 路由 - 将在后续任务中实现
+-from fastapi import APIRouter
++from fastapi import APIRouter, Query
++from models.metrics import get_latest_metrics, get_metrics_history
++from database import DEFAULT_DB_PATH
+ 
+-router = APIRouter()
++router = APIRouter(prefix="/api")
++
++
++@router.get("/status")
++async def get_status():
++    """获取最新状态（用于顶部卡片）"""
++    metrics = await get_latest_metrics(str(DEFAULT_DB_PATH))
++
++    if not metrics:
++        return {
++            "connected": False,
++            "message": "等待首次数据采集...",
++            "threads_connected": "--",
++            "threads_running": "--",
++            "uptime": "--",
++            "slow_queries": "--",
++            "total_qps": "--",
++            "last_update": None,
++        }
++
++    # 计算总 QPS
++    total_qps = 0
++    if metrics.get("select_qps") is not None:
++        total_qps = (
++            metrics["select_qps"]
++            + metrics["insert_qps"]
++            + metrics["update_qps"]
++            + metrics["delete_qps"]
++        )
++
++    # 格式化运行时间
++    uptime_seconds = metrics["uptime"]
++    days = uptime_seconds // 86400
++    hours = (uptime_seconds % 86400) // 3600
++    uptime_str = f"{days}d {hours}h"
++
++    return {
++        "connected": True,
++        "message": "MySQL 运行中",
++        "threads_connected": metrics["threads_connected"],
++        "threads_running": metrics["threads_running"],
++        "uptime": uptime_str,
++        "slow_queries": metrics["slow_queries"],
++        "total_qps": round(total_qps, 2),
++        "last_update": metrics["timestamp"],
++    }
++
++
++@router.get("/metrics")
++async def get_metrics(hours: int = Query(default=24, ge=1, le=168)):
++    """获取指标历史数据（用于图表）"""
++    history = await get_metrics_history(str(DEFAULT_DB_PATH), hours)
++
++    return {
++        "timestamps": [m["timestamp"] for m in history],
++        "select_qps": [m["select_qps"] for m in history],
++        "insert_qps": [m["insert_qps"] for m in history],
++        "update_qps": [m["update_qps"] for m in history],
++        "delete_qps": [m["delete_qps"] for m in history],
++        "threads_connected": [m["threads_connected"] for m in history],
++        "threads_running": [m["threads_running"] for m in history],
++    }
+commit cc1b713a52e3334f784a6fbcc49da835b69d948f
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Wed Jul 8 00:07:36 2026 +0800
+
+    feat: 仪表盘页面路由与模板
+    
+    - 实现 routes/dashboard.py（GET / 返回仪表盘 HTML 页面）
+    - 创建 templates/base.html（基础布局，支持亮/暗主题切换）
+    - 创建 templates/dashboard.html（仪表盘页面，含状态卡片、指标卡片、QPS 和连接数趋势图）
+    - 创建 static/css/custom.css（自定义样式）
+
+ routes/dashboard.py      |  14 ++-
+ static/css/custom.css    |  17 ++++
+ templates/base.html      |  62 +++++++++++++
+ templates/dashboard.html | 225 +++++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 316 insertions(+), 2 deletions(-)
+commit cc1b713a52e3334f784a6fbcc49da835b69d948f
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Wed Jul 8 00:07:36 2026 +0800
+
+    feat: 仪表盘页面路由与模板
+    
+    - 实现 routes/dashboard.py（GET / 返回仪表盘 HTML 页面）
+    - 创建 templates/base.html（基础布局，支持亮/暗主题切换）
+    - 创建 templates/dashboard.html（仪表盘页面，含状态卡片、指标卡片、QPS 和连接数趋势图）
+    - 创建 static/css/custom.css（自定义样式）
+
+diff --git a/routes/dashboard.py b/routes/dashboard.py
+index 2edec30..fc1d7c3 100644
+--- a/routes/dashboard.py
++++ b/routes/dashboard.py
+@@ -1,5 +1,15 @@
+ # routes/dashboard.py
+-# Dashboard 路由 - 将在后续任务中实现
+-from fastapi import APIRouter
++from fastapi import APIRouter, Request
++from fastapi.templating import Jinja2Templates
+ 
+ router = APIRouter()
++templates = Jinja2Templates(directory="templates")
++
++
++@router.get("/")
++async def dashboard(request: Request):
++    """仪表盘页面"""
++    return templates.TemplateResponse(
++        request,
++        "dashboard.html",
++    )
+diff --git a/static/css/custom.css b/static/css/custom.css
+new file mode 100644
+index 0000000..5a471e9
+--- /dev/null
++++ b/static/css/custom.css
+@@ -0,0 +1,17 @@
++/* custom.css - Atlas MySQL Monitor 自定义样式 */
++
++.metric-value {
++    font-size: 2rem;
++    font-weight: bold;
++    text-align: center;
++}
++
++.warning-banner article {
++    border-color: #f97316;
++    background-color: rgba(249, 115, 22, 0.1);
++}
++
++#qpsChart,
++#connectionsChart {
++    max-height: 300px;
++}
+diff --git a/templates/base.html b/templates/base.html
+new file mode 100644
+index 0000000..998f54d
+--- /dev/null
++++ b/templates/base.html
+@@ -0,0 +1,62 @@
++<!DOCTYPE html>
++<html lang="zh-CN" data-theme="light">
++<head>
++    <meta charset="UTF-8">
++    <meta name="viewport" content="width=device-width, initial-scale=1.0">
++    <title>{% block title %}Atlas MySQL Monitor{% endblock %}</title>
++
++    <!-- Pico.css -->
++    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
++
++    <!-- 自定义样式 -->
++    <link rel="stylesheet" href="/static/css/custom.css">
++</head>
++<body>
++    <header class="container">
++        <nav>
++            <ul>
++                <li><strong>Atlas MySQL Monitor</strong></li>
++            </ul>
++            <ul>
++                <li>
++                    <a href="#" id="theme-toggle" class="outline" role="button">
++                        <span id="theme-icon">🌙</span>
++                    </a>
++                </li>
++            </ul>
++        </nav>
++    </header>
++
++    <main class="container">
++        {% block content %}{% endblock %}
++    </main>
++
++    <footer class="container">
++        <small>Atlas MySQL Monitor v0.1.0</small>
++    </footer>
++
++    {% block scripts %}{% endblock %}
++
++    <!-- 主题切换脚本 -->
++    <script>
++        const themeToggle = document.getElementById('theme-toggle');
++        const themeIcon = document.getElementById('theme-icon');
++        const html = document.documentElement;
++
++        // 从 localStorage 读取主题
++        const savedTheme = localStorage.getItem('theme') || 'light';
++        html.setAttribute('data-theme', savedTheme);
++        themeIcon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
++
++        themeToggle.addEventListener('click', (e) => {
++            e.preventDefault();
++            const currentTheme = html.getAttribute('data-theme');
++            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
++
++            html.setAttribute('data-theme', newTheme);
++            localStorage.setItem('theme', newTheme);
++            themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
++        });
++    </script>
++</body>
++</html>
+diff --git a/templates/dashboard.html b/templates/dashboard.html
+new file mode 100644
+index 0000000..56844e5
+--- /dev/null
++++ b/templates/dashboard.html
+@@ -0,0 +1,225 @@
++{% extends "base.html" %}
++
++{% block title %}仪表盘 - Atlas MySQL Monitor{% endblock %}
++
++{% block content %}
++<!-- 警告横幅 -->
++<div id="warning-banner" class="warning-banner" style="display: none;">
++    <article>
++        <p id="warning-message"></p>
++    </article>
++</div>
++
++<!-- 状态卡片 -->
++<section id="status-section">
++    <div class="grid">
++        <article>
++            <header>状态</header>
++            <p id="mysql-status">加载中...</p>
++        </article>
++        <article>
++            <header>运行时间</header>
++            <p id="mysql-uptime">--</p>
++        </article>
++        <article>
++            <header>最后采集</header>
++            <p id="last-update">--</p>
++        </article>
++    </div>
++</section>
++
++<!-- 指标卡片 -->
++<section id="metrics-cards">
++    <div class="grid">
++        <article>
++            <header>连接数</header>
++            <p id="threads-connected" class="metric-value">--</p>
++        </article>
++        <article>
++            <header>活跃线程</header>
++            <p id="threads-running" class="metric-value">--</p>
++        </article>
++        <article>
++            <header>慢查询</header>
++            <p id="slow-queries" class="metric-value">--</p>
++        </article>
++        <article>
++            <header>总 QPS</header>
++            <p id="total-qps" class="metric-value">--</p>
++        </article>
++    </div>
++</section>
++
++<!-- QPS 趋势图 -->
++<section id="qps-chart-section">
++    <article>
++        <header>QPS 趋势（最近 24 小时）</header>
++        <canvas id="qpsChart"></canvas>
++    </article>
++</section>
++
++<!-- 连接数趋势图 -->
++<section id="connections-chart-section">
++    <article>
++        <header>连接数趋势（最近 24 小时）</header>
++        <canvas id="connectionsChart"></canvas>
++    </article>
++</section>
++{% endblock %}
++
++{% block scripts %}
++<!-- Chart.js -->
++<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
++
++<script>
++    // 图表实例
++    let qpsChart = null;
++    let connectionsChart = null;
++
++    // 初始化图表
++    function initCharts() {
++        const qpsCtx = document.getElementById('qpsChart').getContext('2d');
++        qpsChart = new Chart(qpsCtx, {
++            type: 'line',
++            data: {
++                labels: [],
++                datasets: [
++                    {
++                        label: 'SELECT QPS',
++                        data: [],
++                        borderColor: '#3b82f6',
++                        tension: 0.1
++                    },
++                    {
++                        label: 'INSERT QPS',
++                        data: [],
++                        borderColor: '#22c55e',
++                        tension: 0.1
++                    },
++                    {
++                        label: 'UPDATE QPS',
++                        data: [],
++                        borderColor: '#f97316',
++                        tension: 0.1
++                    },
++                    {
++                        label: 'DELETE QPS',
++                        data: [],
++                        borderColor: '#ef4444',
++                        tension: 0.1
++                    }
++                ]
++            },
++            options: {
++                responsive: true,
++                scales: {
++                    y: {
++                        beginAtZero: true
++                    }
++                }
++            }
++        });
++
++        const connCtx = document.getElementById('connectionsChart').getContext('2d');
++        connectionsChart = new Chart(connCtx, {
++            type: 'line',
++            data: {
++                labels: [],
++                datasets: [
++                    {
++                        label: '连接数',
++                        data: [],
++                        borderColor: '#8b5cf6',
++                        tension: 0.1
++                    },
++                    {
++                        label: '活跃线程',
++                        data: [],
++                        borderColor: '#06b6d4',
++                        tension: 0.1
++                    }
++                ]
++            },
++            options: {
++                responsive: true,
++                scales: {
++                    y: {
++                        beginAtZero: true
++                    }
++                }
++            }
++        });
++    }
++
++    // 更新状态卡片
++    async function updateStatus() {
++        try {
++            const response = await fetch('/api/status');
++            const data = await response.json();
++
++            document.getElementById('mysql-status').textContent = data.message;
++            document.getElementById('mysql-uptime').textContent = data.uptime;
++            document.getElementById('last-update').textContent = data.last_update || '--';
++            document.getElementById('threads-connected').textContent = data.threads_connected;
++            document.getElementById('threads-running').textContent = data.threads_running;
++            document.getElementById('slow-queries').textContent = data.slow_queries;
++            document.getElementById('total-qps').textContent = data.total_qps;
++
++            // 处理警告横幅
++            const banner = document.getElementById('warning-banner');
++            if (!data.connected && data.last_update) {
++                banner.style.display = 'block';
++                document.getElementById('warning-message').textContent =
++                    `MySQL 连接异常，最后成功采集时间: ${data.last_update}`;
++            } else {
++                banner.style.display = 'none';
++            }
++        } catch (error) {
++            console.error('获取状态失败:', error);
++        }
++    }
++
++    // 更新图表
++    async function updateCharts() {
++        try {
++            const response = await fetch('/api/metrics?hours=24');
++            const data = await response.json();
++
++            // 格式化时间标签
++            const labels = data.timestamps.map(t => {
++                const date = new Date(t);
++                return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
++            });
++
++            // 更新 QPS 图表
++            qpsChart.data.labels = labels;
++            qpsChart.data.datasets[0].data = data.select_qps;
++            qpsChart.data.datasets[1].data = data.insert_qps;
++            qpsChart.data.datasets[2].data = data.update_qps;
++            qpsChart.data.datasets[3].data = data.delete_qps;
++            qpsChart.update();
++
++            // 更新连接数图表
++            connectionsChart.data.labels = labels;
++            connectionsChart.data.datasets[0].data = data.threads_connected;
++            connectionsChart.data.datasets[1].data = data.threads_running;
++            connectionsChart.update();
++        } catch (error) {
++            console.error('获取指标失败:', error);
++        }
++    }
++
++    // 页面加载后初始化
++    document.addEventListener('DOMContentLoaded', () => {
++        initCharts();
++        updateStatus();
++        updateCharts();
++
++        // 每 60 秒刷新一次
++        setInterval(() => {
++            updateStatus();
++            updateCharts();
++        }, 60000);
++    });
++</script>
++{% endblock %}
+commit c39aec9541f3a0ab38b77c23e5bb57feabd3145c
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Wed Jul 8 00:10:20 2026 +0800
+
+    feat: 自定义样式
+
+ static/css/custom.css | 31 ++++++++++++++++++++++++++-----
+ 1 file changed, 26 insertions(+), 5 deletions(-)
+commit c39aec9541f3a0ab38b77c23e5bb57feabd3145c
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Wed Jul 8 00:10:20 2026 +0800
+
+    feat: 自定义样式
+
+diff --git a/static/css/custom.css b/static/css/custom.css
+index 5a471e9..c135637 100644
+--- a/static/css/custom.css
++++ b/static/css/custom.css
+@@ -1,17 +1,38 @@
+-/* custom.css - Atlas MySQL Monitor 自定义样式 */
++/* static/css/custom.css */
+ 
++/* 指标数值样式 */
+ .metric-value {
+     font-size: 2rem;
+     font-weight: bold;
+     text-align: center;
++    margin: 0;
+ }
+ 
++/* 警告横幅 */
+ .warning-banner article {
+-    border-color: #f97316;
+-    background-color: rgba(249, 115, 22, 0.1);
++    background-color: #fef3c7;
++    border-left: 4px solid #f59e0b;
+ }
+ 
+-#qpsChart,
+-#connectionsChart {
++/* 暗色主题下的警告横幅 */
++[data-theme="dark"] .warning-banner article {
++    background-color: #451a03;
++    border-left-color: #f59e0b;
++}
++
++/* 图表容器 */
++canvas {
+     max-height: 300px;
+ }
++
++/* 状态卡片网格 */
++.grid article {
++    margin-bottom: 0;
++}
++
++/* 响应式调整 */
++@media (max-width: 768px) {
++    .metric-value {
++        font-size: 1.5rem;
++    }
++}
+commit 9d238ea3368d385347370c0cbdaf870048bead32
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Wed Jul 8 00:14:30 2026 +0800
+
+    feat: 完成 MVP 版本
+
+ CLAUDE.md                                          |   57 +
+ .../plans/2026-07-07-atlas-mysql-monitor.md        | 1488 ++++++++++++++++++++
+ .../specs/2026-07-07-atlas-mysql-monitor-design.md |  253 ++++
+ 3 files changed, 1798 insertions(+)
+commit 9d238ea3368d385347370c0cbdaf870048bead32
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Wed Jul 8 00:14:30 2026 +0800
+
+    feat: 完成 MVP 版本
+
+diff --git a/CLAUDE.md b/CLAUDE.md
+new file mode 100644
+index 0000000..0e21909
+--- /dev/null
++++ b/CLAUDE.md
+@@ -0,0 +1,57 @@
++# CLAUDE.md
++
++本文件为 Claude Code (claude.ai/code) 在本仓库中工作提供指导。
++
++## 语言要求
++
++- 当用户提问时，必须使用中文回答
++- 所有文档（包括 CLAUDE.md、README、注释等）必须使用中文编写
++
++## 项目概述
++
++Atlas MySQL Monitor — 基于 FastAPI 的 MySQL 监控工具。做简单的指标统计（不追求 Prometheus 级别的能力），采用服务端渲染 Web 架构（不做前后端分离），使用 SQLite 存储数据。
++
++## 技术栈
++
++- **框架**：FastAPI（异步 Python Web 框架）
++- **服务器**：Uvicorn（ASGI）
++- **包管理器**：uv（非 pip/poetry）
++- **Python**：>=3.12
++- **数据库**：SQLite（通过 `aiosqlite` 等异步驱动）
++- **模板引擎**：Jinja2（用于 SSR）
++
++## 常用命令
++
++```bash
++# 启动开发服务器（热重载）
++uv run uvicorn main:app --reload
++
++# 启动开发服务器（替代方式）
++uv run fastapi dev main.py
++
++# 安装依赖
++uv sync
++
++# 添加依赖
++uv add <package>
++
++# 运行测试
++uv run pytest
++
++# 运行单个测试
++uv run pytest tests/test_<name>.py::test_<function>
++```
++
++## 架构
++
++- **SSR 模式**：路由返回 `TemplateResponse`（Jinja2 HTML），而非 JSON API（AJAX 数据接口除外）
++- **单进程**：本地使用，无需 worker 编排
++- **SQLite**：基于本地文件的数据库，无需外部数据库配置
++- **静态文件**：由 FastAPI 的 `StaticFiles` 中间件在 `/static` 路径下提供服务
++
++## 关键约定
++
++- 所有指标采集逻辑放在独立模块中（如 `collectors/`）
++- 数据库模型/查询使用异步模式（`async def`、`await`）
++- HTML 模板放在 `templates/` 目录，静态资源放在 `static/`
++- 配置通过环境变量或 `.env` 文件管理
+diff --git a/docs/superpowers/plans/2026-07-07-atlas-mysql-monitor.md b/docs/superpowers/plans/2026-07-07-atlas-mysql-monitor.md
+new file mode 100644
+index 0000000..2a02efc
+--- /dev/null
++++ b/docs/superpowers/plans/2026-07-07-atlas-mysql-monitor.md
+@@ -0,0 +1,1488 @@
++# Atlas MySQL Monitor 实施计划
++
++> **给智能体工作者：** 必须使用 superpowers:subagent-driven-development（推荐）或 superpowers:executing-plans 来逐任务实施本计划。步骤使用 checkbox（`- [ ]`）语法进行跟踪。
++
++**目标：** 从零构建一个基于 FastAPI 的 MySQL 监控工具，支持定时采集基础指标、SQLite 存储、SSR 仪表盘展示。
++
++**架构：** 模块化结构，按职责划分：配置管理 → 数据库层 → 采集器 → 路由 → 前端模板。后台使用 asyncio 协程定时采集，前端使用 Pico.css + Chart.js 渲染。
++
++**技术栈：** FastAPI、aiosqlite、aiomysql、pydantic-settings、Jinja2、Pico.css、Chart.js
++
++## 全局约束
++
++- Python >= 3.12
++- 包管理器：uv（非 pip）
++- 所有异步函数使用 `async def` + `await`
++- 配置通过 `.env` 文件管理
++- 文档使用中文编写
++
++---
++
++## 文件结构
++
++```
++atlas-mysql-monitor/
++├── main.py                          # FastAPI 入口、lifespan 事件
++├── config.py                        # pydantic-settings 配置
++├── database.py                      # SQLite 连接管理
++├── collectors/
++│   ├── __init__.py
++│   └── mysql_collector.py           # MySQL 指标采集器
++├── models/
++│   ├── __init__.py
++│   └── metrics.py                   # 指标 CRUD 操作
++├── routes/
++│   ├── __init__.py
++│   ├── dashboard.py                 # 仪表盘页面路由
++│   └── api.py                       # JSON API 路由
++├── templates/
++│   ├── base.html                    # 基础布局
++│   └── dashboard.html               # 仪表盘页面
++├── static/
++│   └── css/
++│       └── custom.css               # 自定义样式
++├── tests/
++│   ├── __init__.py
++│   ├── test_config.py
++│   ├── test_database.py
++│   ├── test_metrics.py
++│   └── test_collector.py
++├── data/                            # 运行时生成
++├── pyproject.toml
++├── .env
++├── .env.example
++└── .gitignore
++```
++
++---
++
++### Task 1: 项目配置与依赖
++
++**文件：**
++- 修改：`pyproject.toml`
++- 创建：`.env.example`
++- 创建：`.gitignore`
++- 创建：`config.py`
++- 创建：`tests/__init__.py`
++- 创建：`tests/test_config.py`
++
++**接口：**
++- 产出：`Config` 类，供后续任务使用
++
++- [ ] **Step 1: 更新 pyproject.toml 添加依赖**
++
++```toml
++[project]
++name = "atlas-mysql-monitor"
++version = "0.1.0"
++requires-python = ">=3.12"
++dependencies = [
++    "fastapi>=0.139.0",
++    "uvicorn>=0.50.2",
++    "aiosqlite>=0.20.0",
++    "aiomysql>=0.2.0",
++    "pydantic-settings>=2.0.0",
++    "jinja2>=3.1.0",
++    "python-dotenv>=1.0.0",
++]
++
++[project.optional-dependencies]
++dev = [
++    "pytest>=8.0.0",
++    "pytest-asyncio>=0.24.0",
++    "httpx>=0.27.0",
++]
++```
++
++- [ ] **Step 2: 同步依赖**
++
++```bash
++uv sync
++```
++
++预期输出：依赖安装成功
++
++- [ ] **Step 3: 创建 .env.example**
++
++```env
++# MySQL 连接配置
++MYSQL_HOST=localhost
++MYSQL_PORT=3306
++MYSQL_USER=monitor
++MYSQL_PASSWORD=your_password
++MYSQL_DATABASE=mysql
++
++# 监控配置
++COLLECT_INTERVAL=60
++RETENTION_DAYS=30
++```
++
++- [ ] **Step 4: 创建 .gitignore**
++
++```
++.venv/
++.env
++data/
++__pycache__/
++*.pyc
++.idea/
++```
++
++- [ ] **Step 5: 编写配置测试**
++
++```python
++# tests/test_config.py
++import pytest
++from config import Config
++
++
++def test_config_default_values(monkeypatch):
++    """测试配置默认值"""
++    monkeypatch.setenv("MYSQL_HOST", "localhost")
++    monkeypatch.setenv("MYSQL_USER", "test")
++    monkeypatch.setenv("MYSQL_PASSWORD", "test")
++    
++    config = Config()
++    assert config.MYSQL_HOST == "localhost"
++    assert config.COLLECT_INTERVAL == 60
++    assert config.RETENTION_DAYS == 30
++
++
++def test_config_custom_values(monkeypatch):
++    """测试自定义配置值"""
++    monkeypatch.setenv("MYSQL_HOST", "192.168.1.100")
++    monkeypatch.setenv("MYSQL_USER", "admin")
++    monkeypatch.setenv("MYSQL_PASSWORD", "secret")
++    monkeypatch.setenv("COLLECT_INTERVAL", "30")
++    monkeypatch.setenv("RETENTION_DAYS", "7")
++    
++    config = Config()
++    assert config.MYSQL_HOST == "192.168.1.100"
++    assert config.COLLECT_INTERVAL == 30
++    assert config.RETENTION_DAYS == 7
++```
++
++- [ ] **Step 6: 运行测试验证失败**
++
++```bash
++uv run pytest tests/test_config.py -v
++```
++
++预期输出：FAIL（ModuleNotFoundError: No module named 'config'）
++
++- [ ] **Step 7: 实现 config.py**
++
++```python
++# config.py
++from pydantic_settings import BaseSettings
++
++
++class Config(BaseSettings):
++    # MySQL 连接配置
++    MYSQL_HOST: str = "localhost"
++    MYSQL_PORT: int = 3306
++    MYSQL_USER: str = "root"
++    MYSQL_PASSWORD: str = ""
++    MYSQL_DATABASE: str = "mysql"
++    
++    # 监控配置
++    COLLECT_INTERVAL: int = 60  # 采集间隔（秒）
++    RETENTION_DAYS: int = 30    # 数据保留天数
++    
++    class Config:
++        env_file = ".env"
++
++
++config = Config()
++```
++
++- [ ] **Step 8: 运行测试验证通过**
++
++```bash
++uv run pytest tests/test_config.py -v
++```
++
++预期输出：2 passed
++
++- [ ] **Step 9: 提交代码**
++
++```bash
++git add pyproject.toml .env.example .gitignore config.py tests/
++git commit -m "feat: 项目配置与依赖管理"
++```
++
++---
++
++### Task 2: SQLite 数据库层
++
++**文件：**
++- 创建：`database.py`
++- 创建：`tests/test_database.py`
++
++**接口：**
++- 产出：`init_db()`、`get_db()` 函数，供后续任务使用
++
++- [ ] **Step 1: 编写数据库测试**
++
++```python
++# tests/test_database.py
++import pytest
++import aiosqlite
++import os
++from database import init_db, get_db
++
++
++@pytest.fixture
++def db_path(tmp_path):
++    """创建临时数据库路径"""
++    return str(tmp_path / "test.db")
++
++
++@pytest.mark.asyncio
++async def test_init_db_creates_table(db_path):
++    """测试初始化数据库创建表"""
++    await init_db(db_path)
++    
++    async with aiosqlite.connect(db_path) as db:
++        cursor = await db.execute(
++            "SELECT name FROM sqlite_master WHERE type='table' AND name='mysql_metrics'"
++        )
++        table = await cursor.fetchone()
++        assert table is not None
++
++
++@pytest.mark.asyncio
++async def test_get_db_returns_connection(db_path):
++    """测试获取数据库连接"""
++    await init_db(db_path)
++    
++    async with get_db(db_path) as db:
++        cursor = await db.execute("SELECT 1")
++        result = await cursor.fetchone()
++        assert result[0] == 1
++```
++
++- [ ] **Step 2: 运行测试验证失败**
++
++```bash
++uv run pytest tests/test_database.py -v
++```
++
++预期输出：FAIL（ModuleNotFoundError: No module named 'database'）
++
++- [ ] **Step 3: 实现 database.py**
++
++```python
++# database.py
++import aiosqlite
++from contextlib import asynccontextmanager
++from pathlib import Path
++
++# 确保 data 目录存在
++DATA_DIR = Path("data")
++DATA_DIR.mkdir(exist_ok=True)
++
++DEFAULT_DB_PATH = DATA_DIR / "monitor.db"
++
++
++async def init_db(db_path: str = None):
++    """初始化数据库，创建表结构"""
++    if db_path is None:
++        db_path = str(DEFAULT_DB_PATH)
++    
++    async with aiosqlite.connect(db_path) as db:
++        await db.execute("""
++            CREATE TABLE IF NOT EXISTS mysql_metrics (
++                id INTEGER PRIMARY KEY AUTOINCREMENT,
++                timestamp DATETIME NOT NULL DEFAULT (datetime('now', 'localtime')),
++                threads_connected INTEGER,
++                threads_running INTEGER,
++                uptime INTEGER,
++                slow_queries INTEGER,
++                com_select INTEGER,
++                com_insert INTEGER,
++                com_update INTEGER,
++                com_delete INTEGER,
++                select_qps REAL,
++                insert_qps REAL,
++                update_qps REAL,
++                delete_qps REAL
++            )
++        """)
++        await db.execute(
++            "CREATE INDEX IF NOT EXISTS idx_timestamp ON mysql_metrics(timestamp)"
++        )
++        await db.commit()
++
++
++@asynccontextmanager
++async def get_db(db_path: str = None):
++    """获取数据库连接的上下文管理器"""
++    if db_path is None:
++        db_path = str(DEFAULT_DB_PATH)
++    
++    db = await aiosqlite.connect(db_path)
++    try:
++        yield db
++    finally:
++        await db.close()
++```
++
++- [ ] **Step 4: 运行测试验证通过**
++
++```bash
++uv run pytest tests/test_database.py -v
++```
++
++预期输出：2 passed
++
++- [ ] **Step 5: 提交代码**
++
++```bash
++git add database.py tests/test_database.py
++git commit -m "feat: SQLite 数据库层"
++```
++
++---
++
++### Task 3: 指标数据模型
++
++**文件：**
++- 创建：`models/__init__.py`
++- 创建：`models/metrics.py`
++- 创建：`tests/test_metrics.py`
++
++**接口：**
++- 消费：`database.get_db()`
++- 产出：`save_metrics()`、`get_latest_metrics()`、`get_metrics_history()`、`cleanup_old_metrics()` 函数
++
++- [ ] **Step 1: 编写指标模型测试**
++
++```python
++# tests/test_metrics.py
++import pytest
++import asyncio
++from datetime import datetime, timedelta
++from database import init_db
++from models.metrics import (
++    save_metrics,
++    get_latest_metrics,
++    get_metrics_history,
++    cleanup_old_metrics,
++)
++
++
++@pytest.fixture
++async def db(tmp_path):
++    """创建测试数据库"""
++    db_path = str(tmp_path / "test.db")
++    await init_db(db_path)
++    return db_path
++
++
++@pytest.mark.asyncio
++async def test_save_and_get_latest_metrics(db):
++    """测试保存和获取最新指标"""
++    metrics = {
++        "threads_connected": 10,
++        "threads_running": 2,
++        "uptime": 3600,
++        "slow_queries": 5,
++        "com_select": 1000,
++        "com_insert": 100,
++        "com_update": 50,
++        "com_delete": 10,
++        "select_qps": 16.67,
++        "insert_qps": 1.67,
++        "update_qps": 0.83,
++        "delete_qps": 0.17,
++    }
++    
++    await save_metrics(db, metrics)
++    latest = await get_latest_metrics(db)
++    
++    assert latest is not None
++    assert latest["threads_connected"] == 10
++    assert latest["select_qps"] == 16.67
++
++
++@pytest.mark.asyncio
++async def test_get_metrics_history(db):
++    """测试获取指标历史"""
++    # 插入多条记录
++    for i in range(5):
++        metrics = {
++            "threads_connected": 10 + i,
++            "threads_running": 2,
++            "uptime": 3600 + i * 60,
++            "slow_queries": 5,
++            "com_select": 1000 + i * 100,
++            "com_insert": 100,
++            "com_update": 50,
++            "com_delete": 10,
++            "select_qps": 16.67,
++            "insert_qps": 1.67,
++            "update_qps": 0.83,
++            "delete_qps": 0.17,
++        }
++        await save_metrics(db, metrics)
++    
++    history = await get_metrics_history(db, hours=1)
++    assert len(history) == 5
++
++
++@pytest.mark.asyncio
++async def test_cleanup_old_metrics(db):
++    """测试清理过期数据"""
++    # 插入一条旧数据（手动设置 timestamp）
++    metrics = {
++        "threads_connected": 10,
++        "threads_running": 2,
++        "uptime": 3600,
++        "slow_queries": 5,
++        "com_select": 1000,
++        "com_insert": 100,
++        "com_update": 50,
++        "com_delete": 10,
++        "select_qps": 16.67,
++        "insert_qps": 1.67,
++        "update_qps": 0.83,
++        "delete_qps": 0.17,
++    }
++    await save_metrics(db, metrics)
++    
++    # 手动修改 timestamp 为 31 天前
++    import aiosqlite
++    async with aiosqlite.connect(db) as conn:
++        old_time = datetime.now() - timedelta(days=31)
++        await conn.execute(
++            "UPDATE mysql_metrics SET timestamp = ?",
++            (old_time.strftime("%Y-%m-%d %H:%M:%S"),)
++        )
++        await conn.commit()
++    
++    # 清理 30 天前的数据
++    deleted = await cleanup_old_metrics(db, retention_days=30)
++    assert deleted == 1
++    
++    # 验证数据已删除
++    latest = await get_latest_metrics(db)
++    assert latest is None
++```
++
++- [ ] **Step 2: 运行测试验证失败**
++
++```bash
++uv run pytest tests/test_metrics.py -v
++```
++
++预期输出：FAIL（ModuleNotFoundError）
++
++- [ ] **Step 3: 实现 models/metrics.py**
++
++```python
++# models/metrics.py
++import aiosqlite
++from datetime import datetime, timedelta
++from typing import Optional, List, Dict, Any
++
++
++async def save_metrics(db_path: str, metrics: Dict[str, Any]) -> None:
++    """保存一条指标记录"""
++    import aiosqlite
++    async with aiosqlite.connect(db_path) as db:
++        await db.execute("""
++            INSERT INTO mysql_metrics (
++                threads_connected, threads_running, uptime, slow_queries,
++                com_select, com_insert, com_update, com_delete,
++                select_qps, insert_qps, update_qps, delete_qps
++            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
++        """, (
++            metrics["threads_connected"],
++            metrics["threads_running"],
++            metrics["uptime"],
++            metrics["slow_queries"],
++            metrics["com_select"],
++            metrics["com_insert"],
++            metrics["com_update"],
++            metrics["com_delete"],
++            metrics["select_qps"],
++            metrics["insert_qps"],
++            metrics["update_qps"],
++            metrics["delete_qps"],
++        ))
++        await db.commit()
++
++
++async def get_latest_metrics(db_path: str) -> Optional[Dict[str, Any]]:
++    """获取最新一条指标"""
++    import aiosqlite
++    async with aiosqlite.connect(db_path) as db:
++        db.row_factory = aiosqlite.Row
++        cursor = await db.execute(
++            "SELECT * FROM mysql_metrics ORDER BY id DESC LIMIT 1"
++        )
++        row = await cursor.fetchone()
++        if row:
++            return dict(row)
++        return None
++
++
++async def get_metrics_history(db_path: str, hours: int = 24) -> List[Dict[str, Any]]:
++    """获取最近 N 小时的指标历史"""
++    import aiosqlite
++    async with aiosqlite.connect(db_path) as db:
++        db.row_factory = aiosqlite.Row
++        since = datetime.now() - timedelta(hours=hours)
++        cursor = await db.execute(
++            "SELECT * FROM mysql_metrics WHERE timestamp >= ? ORDER BY timestamp",
++            (since.strftime("%Y-%m-%d %H:%M:%S"),)
++        )
++        rows = await cursor.fetchall()
++        return [dict(row) for row in rows]
++
++
++async def cleanup_old_metrics(db_path: str, retention_days: int = 30) -> int:
++    """清理超过保留天数的旧数据，返回删除的行数"""
++    import aiosqlite
++    async with aiosqlite.connect(db_path) as db:
++        cutoff = datetime.now() - timedelta(days=retention_days)
++        cursor = await db.execute(
++            "DELETE FROM mysql_metrics WHERE timestamp < ?",
++            (cutoff.strftime("%Y-%m-%d %H:%M:%S"),)
++        )
++        await db.commit()
++        return cursor.rowcount
++```
++
++- [ ] **Step 4: 运行测试验证通过**
++
++```bash
++uv run pytest tests/test_metrics.py -v
++```
++
++预期输出：3 passed
++
++- [ ] **Step 5: 提交代码**
++
++```bash
++git add models/ tests/test_metrics.py
++git commit -m "feat: 指标数据模型"
++```
++
++---
++
++### Task 4: MySQL 采集器
++
++**文件：**
++- 创建：`collectors/__init__.py`
++- 创建：`collectors/mysql_collector.py`
++- 创建：`tests/test_collector.py`
++
++**接口：**
++- 消费：`config.Config`
++- 产出：`MySQLCollector` 类，提供 `collect()` 方法
++
++- [ ] **Step 1: 编写采集器测试**
++
++```python
++# tests/test_collector.py
++import pytest
++from unittest.mock import AsyncMock, patch, MagicMock
++from collectors.mysql_collector import MySQLCollector
++
++
++@pytest.fixture
++def mock_config():
++    """模拟配置"""
++    config = MagicMock()
++    config.MYSQL_HOST = "localhost"
++    config.MYSQL_PORT = 3306
++    config.MYSQL_USER = "test"
++    config.MYSQL_PASSWORD = "test"
++    config.MYSQL_DATABASE = "mysql"
++    return config
++
++
++@pytest.mark.asyncio
++async def test_collector_parse_status(mock_config):
++    """测试解析 MySQL 状态"""
++    collector = MySQLCollector(mock_config)
++    
++    # 模拟 SHOW GLOBAL STATUS 返回
++    status_data = {
++        "Threads_connected": "10",
++        "Threads_running": "2",
++        "Uptime": "3600",
++        "Slow_queries": "5",
++        "Com_select": "1000",
++        "Com_insert": "100",
++        "Com_update": "50",
++        "Com_delete": "10",
++    }
++    
++    metrics = collector._parse_status(status_data)
++    
++    assert metrics["threads_connected"] == 10
++    assert metrics["threads_running"] == 2
++    assert metrics["uptime"] == 3600
++    assert metrics["slow_queries"] == 5
++    assert metrics["com_select"] == 1000
++
++
++@pytest.mark.asyncio
++async def test_collector_calculate_qps(mock_config):
++    """测试计算 QPS"""
++    collector = MySQLCollector(mock_config)
++    
++    current = {
++        "com_select": 1060,
++        "com_insert": 110,
++        "com_update": 55,
++        "com_delete": 12,
++    }
++    
++    previous = {
++        "com_select": 1000,
++        "com_insert": 100,
++        "com_update": 50,
++        "com_delete": 10,
++    }
++    
++    interval = 60  # 秒
++    
++    qps = collector._calculate_qps(current, previous, interval)
++    
++    assert qps["select_qps"] == pytest.approx(1.0)
++    assert qps["insert_qps"] == pytest.approx(0.1667, rel=0.01)
++    assert qps["update_qps"] == pytest.approx(0.0833, rel=0.01)
++    assert qps["delete_qps"] == pytest.approx(0.0333, rel=0.01)
++```
++
++- [ ] **Step 2: 运行测试验证失败**
++
++```bash
++uv run pytest tests/test_collector.py -v
++```
++
++预期输出：FAIL（ModuleNotFoundError）
++
++- [ ] **Step 3: 实现 collectors/mysql_collector.py**
++
++```python
++# collectors/mysql_collector.py
++import aiomysql
++import logging
++from typing import Dict, Any, Optional
++
++logger = logging.getLogger(__name__)
++
++
++class MySQLCollector:
++    """MySQL 指标采集器"""
++    
++    def __init__(self, config):
++        self.config = config
++        self.pool: Optional[aiomysql.Pool] = None
++    
++    async def connect(self):
++        """创建连接池"""
++        try:
++            self.pool = await aiomysql.create_pool(
++                host=self.config.MYSQL_HOST,
++                port=self.config.MYSQL_PORT,
++                user=self.config.MYSQL_USER,
++                password=self.config.MYSQL_PASSWORD,
++                db=self.config.MYSQL_DATABASE,
++                minsize=1,
++                maxsize=2,
++            )
++            logger.info("MySQL 连接池创建成功")
++        except Exception as e:
++            logger.error(f"MySQL 连接失败: {e}")
++            raise
++    
++    async def close(self):
++        """关闭连接池"""
++        if self.pool:
++            self.pool.close()
++            await self.pool.wait_closed()
++    
++    async def collect(self) -> Dict[str, Any]:
++        """采集 MySQL 指标"""
++        if not self.pool:
++            await self.connect()
++        
++        async with self.pool.acquire() as conn:
++            async with conn.cursor() as cursor:
++                await cursor.execute("SHOW GLOBAL STATUS")
++                rows = await cursor.fetchall()
++                status_data = {row[0]: row[1] for row in rows}
++        
++        metrics = self._parse_status(status_data)
++        return metrics
++    
++    def _parse_status(self, status_data: Dict[str, str]) -> Dict[str, Any]:
++        """解析 MySQL 状态数据"""
++        return {
++            "threads_connected": int(status_data.get("Threads_connected", 0)),
++            "threads_running": int(status_data.get("Threads_running", 0)),
++            "uptime": int(status_data.get("Uptime", 0)),
++            "slow_queries": int(status_data.get("Slow_queries", 0)),
++            "com_select": int(status_data.get("Com_select", 0)),
++            "com_insert": int(status_data.get("Com_insert", 0)),
++            "com_update": int(status_data.get("Com_update", 0)),
++            "com_delete": int(status_data.get("Com_delete", 0)),
++        }
++    
++    def _calculate_qps(
++        self, current: Dict[str, int], previous: Dict[str, int], interval: int
++    ) -> Dict[str, float]:
++        """计算各类 QPS"""
++        return {
++            "select_qps": (current["com_select"] - previous["com_select"]) / interval,
++            "insert_qps": (current["com_insert"] - previous["com_insert"]) / interval,
++            "update_qps": (current["com_update"] - previous["com_update"]) / interval,
++            "delete_qps": (current["com_delete"] - previous["com_delete"]) / interval,
++        }
++```
++
++- [ ] **Step 4: 运行测试验证通过**
++
++```bash
++uv run pytest tests/test_collector.py -v
++```
++
++预期输出：2 passed
++
++- [ ] **Step 5: 提交代码**
++
++```bash
++git add collectors/ tests/test_collector.py
++git commit -m "feat: MySQL 采集器"
++```
++
++---
++
++### Task 5: FastAPI 主应用与后台任务
++
++**文件：**
++- 修改：`main.py`
++
++**接口：**
++- 消费：`config.config`、`database.init_db()`、`models.metrics`、`collectors.mysql_collector.MySQLCollector`
++
++- [ ] **Step 1: 重写 main.py**
++
++```python
++# main.py
++import asyncio
++import logging
++from contextlib import asynccontextmanager
++from fastapi import FastAPI
++from fastapi.staticfiles import StaticFiles
++
++from config import config
++from database import init_db, DEFAULT_DB_PATH
++from models.metrics import save_metrics, get_latest_metrics, cleanup_old_metrics
++from collectors.mysql_collector import MySQLCollector
++from routes import dashboard, api
++
++logging.basicConfig(level=logging.INFO)
++logger = logging.getLogger(__name__)
++
++# 全局状态
++collector: MySQLCollector = None
++collect_task: asyncio.Task = None
++consecutive_failures: int = 0
++last_success_time: str = None
++
++
++async def collect_loop():
++    """后台采集循环"""
++    global consecutive_failures, last_success_time
++    
++    previous_metrics = None
++    
++    while True:
++        try:
++            # 采集当前指标
++            current_metrics = await collector.collect()
++            
++            # 计算 QPS
++            if previous_metrics:
++                qps = collector._calculate_qps(
++                    current_metrics,
++                    previous_metrics,
++                    config.COLLECT_INTERVAL
++                )
++                current_metrics.update(qps)
++            else:
++                # 首次采集，QPS 为 None
++                current_metrics.update({
++                    "select_qps": None,
++                    "insert_qps": None,
++                    "update_qps": None,
++                    "delete_qps": None,
++                })
++            
++            # 保存到数据库
++            await save_metrics(str(DEFAULT_DB_PATH), current_metrics)
++            
++            # 更新状态
++            previous_metrics = current_metrics
++            consecutive_failures = 0
++            last_success_time = current_metrics.get("timestamp")
++            
++            logger.info("指标采集成功")
++            
++        except Exception as e:
++            consecutive_failures += 1
++            logger.error(f"采集失败（连续失败 {consecutive_failures} 次）: {e}")
++        
++        await asyncio.sleep(config.COLLECT_INTERVAL)
++
++
++@asynccontextmanager
++async def lifespan(app: FastAPI):
++    """应用生命周期管理"""
++    global collector, collect_task
++    
++    # 启动时初始化
++    logger.info("正在初始化数据库...")
++    await init_db()
++    
++    # 清理过期数据
++    deleted = await cleanup_old_metrics(str(DEFAULT_DB_PATH), config.RETENTION_DAYS)
++    if deleted > 0:
++        logger.info(f"已清理 {deleted} 条过期数据")
++    
++    # 创建采集器
++    logger.info("正在连接 MySQL...")
++    collector = MySQLCollector(config)
++    
++    # 启动后台采集任务
++    logger.info(f"启动后台采集任务（间隔 {config.COLLECT_INTERVAL} 秒）...")
++    collect_task = asyncio.create_task(collect_loop())
++    
++    yield
++    
++    # 关闭时清理
++    if collect_task:
++        collect_task.cancel()
++        try:
++            await collect_task
++        except asyncio.CancelledError:
++            pass
++    
++    if collector:
++        await collector.close()
++    
++    logger.info("应用已关闭")
++
++
++# 创建 FastAPI 应用
++app = FastAPI(title="Atlas MySQL Monitor", lifespan=lifespan)
++
++# 挂载静态文件
++app.mount("/static", StaticFiles(directory="static"), name="static")
++
++# 注册路由
++app.include_router(dashboard.router)
++app.include_router(api.router)
++
++
++@app.get("/health")
++async def health():
++    """健康检查"""
++    return {"status": "ok"}
++```
++
++- [ ] **Step 2: 运行应用验证启动**
++
++```bash
++uv run uvicorn main:app --reload
++```
++
++预期输出：应用启动成功，监听 8000 端口（会因为没有 .env 文件和 MySQL 连接失败而报错，这是预期的）
++
++- [ ] **Step 3: 提交代码**
++
++```bash
++git add main.py
++git commit -m "feat: FastAPI 主应用与后台采集任务"
++```
++
++---
++
++### Task 6: API 路由
++
++**文件：**
++- 创建：`routes/__init__.py`
++- 创建：`routes/api.py`
++
++**接口：**
++- 消费：`models.metrics.get_latest_metrics()`、`models.metrics.get_metrics_history()`
++- 产出：`GET /api/status`、`GET /api/metrics`
++
++- [ ] **Step 1: 实现 routes/api.py**
++
++```python
++# routes/api.py
++from fastapi import APIRouter, Query
++from models.metrics import get_latest_metrics, get_metrics_history
++from database import DEFAULT_DB_PATH
++
++router = APIRouter(prefix="/api")
++
++
++@router.get("/status")
++async def get_status():
++    """获取最新状态（用于顶部卡片）"""
++    metrics = await get_latest_metrics(str(DEFAULT_DB_PATH))
++    
++    if not metrics:
++        return {
++            "connected": False,
++            "message": "等待首次数据采集...",
++            "threads_connected": "--",
++            "threads_running": "--",
++            "uptime": "--",
++            "slow_queries": "--",
++            "total_qps": "--",
++            "last_update": None,
++        }
++    
++    # 计算总 QPS
++    total_qps = 0
++    if metrics.get("select_qps") is not None:
++        total_qps = (
++            metrics["select_qps"]
++            + metrics["insert_qps"]
++            + metrics["update_qps"]
++            + metrics["delete_qps"]
++        )
++    
++    # 格式化运行时间
++    uptime_seconds = metrics["uptime"]
++    days = uptime_seconds // 86400
++    hours = (uptime_seconds % 86400) // 3600
++    uptime_str = f"{days}d {hours}h"
++    
++    return {
++        "connected": True,
++        "message": "MySQL 运行中",
++        "threads_connected": metrics["threads_connected"],
++        "threads_running": metrics["threads_running"],
++        "uptime": uptime_str,
++        "slow_queries": metrics["slow_queries"],
++        "total_qps": round(total_qps, 2),
++        "last_update": metrics["timestamp"],
++    }
++
++
++@router.get("/metrics")
++async def get_metrics(hours: int = Query(default=24, ge=1, le=168)):
++    """获取指标历史数据（用于图表）"""
++    history = await get_metrics_history(str(DEFAULT_DB_PATH), hours)
++    
++    return {
++        "timestamps": [m["timestamp"] for m in history],
++        "select_qps": [m["select_qps"] for m in history],
++        "insert_qps": [m["insert_qps"] for m in history],
++        "update_qps": [m["update_qps"] for m in history],
++        "delete_qps": [m["delete_qps"] for m in history],
++        "threads_connected": [m["threads_connected"] for m in history],
++        "threads_running": [m["threads_running"] for m in history],
++    }
++```
++
++- [ ] **Step 2: 运行应用验证路由**
++
++```bash
++uv run uvicorn main:app --reload
++```
++
++访问 `http://localhost:8000/docs` 应该能看到 API 文档
++
++- [ ] **Step 3: 提交代码**
++
++```bash
++git add routes/
++git commit -m "feat: API 路由"
++```
++
++---
++
++### Task 7: 仪表盘页面路由与模板
++
++**文件：**
++- 创建：`routes/dashboard.py`
++- 创建：`templates/base.html`
++- 创建：`templates/dashboard.html`
++
++**接口：**
++- 消费：FastAPI、Jinja2
++- 产出：`GET /` 返回 HTML 页面
++
++- [ ] **Step 1: 实现 routes/dashboard.py**
++
++```python
++# routes/dashboard.py
++from fastapi import APIRouter, Request
++from fastapi.templating import Jinja2Templates
++
++router = APIRouter()
++templates = Jinja2Templates(directory="templates")
++
++
++@router.get("/")
++async def dashboard(request: Request):
++    """仪表盘页面"""
++    return templates.TemplateResponse(
++        "dashboard.html",
++        {"request": request}
++    )
++```
++
++- [ ] **Step 2: 创建 templates/base.html**
++
++```html
++<!DOCTYPE html>
++<html lang="zh-CN" data-theme="light">
++<head>
++    <meta charset="UTF-8">
++    <meta name="viewport" content="width=device-width, initial-scale=1.0">
++    <title>{% block title %}Atlas MySQL Monitor{% endblock %}</title>
++    
++    <!-- Pico.css -->
++    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
++    
++    <!-- 自定义样式 -->
++    <link rel="stylesheet" href="/static/css/custom.css">
++</head>
++<body>
++    <header class="container">
++        <nav>
++            <ul>
++                <li><strong>Atlas MySQL Monitor</strong></li>
++            </ul>
++            <ul>
++                <li>
++                    <a href="#" id="theme-toggle" class="outline" role="button">
++                        <span id="theme-icon">🌙</span>
++                    </a>
++                </li>
++            </ul>
++        </nav>
++    </header>
++    
++    <main class="container">
++        {% block content %}{% endblock %}
++    </main>
++    
++    <footer class="container">
++        <small>Atlas MySQL Monitor v0.1.0</small>
++    </footer>
++    
++    {% block scripts %}{% endblock %}
++    
++    <!-- 主题切换脚本 -->
++    <script>
++        const themeToggle = document.getElementById('theme-toggle');
++        const themeIcon = document.getElementById('theme-icon');
++        const html = document.documentElement;
++        
++        // 从 localStorage 读取主题
++        const savedTheme = localStorage.getItem('theme') || 'light';
++        html.setAttribute('data-theme', savedTheme);
++        themeIcon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
++        
++        themeToggle.addEventListener('click', (e) => {
++            e.preventDefault();
++            const currentTheme = html.getAttribute('data-theme');
++            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
++            
++            html.setAttribute('data-theme', newTheme);
++            localStorage.setItem('theme', newTheme);
++            themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
++        });
++    </script>
++</body>
++</html>
++```
++
++- [ ] **Step 3: 创建 templates/dashboard.html**
++
++```html
++{% extends "base.html" %}
++
++{% block title %}仪表盘 - Atlas MySQL Monitor{% endblock %}
++
++{% block content %}
++<!-- 警告横幅 -->
++<div id="warning-banner" class="warning-banner" style="display: none;">
++    <article>
++        <p id="warning-message"></p>
++    </article>
++</div>
++
++<!-- 状态卡片 -->
++<section id="status-section">
++    <div class="grid">
++        <article>
++            <header>状态</header>
++            <p id="mysql-status">加载中...</p>
++        </article>
++        <article>
++            <header>运行时间</header>
++            <p id="mysql-uptime">--</p>
++        </article>
++        <article>
++            <header>最后采集</header>
++            <p id="last-update">--</p>
++        </article>
++    </div>
++</section>
++
++<!-- 指标卡片 -->
++<section id="metrics-cards">
++    <div class="grid">
++        <article>
++            <header>连接数</header>
++            <p id="threads-connected" class="metric-value">--</p>
++        </article>
++        <article>
++            <header>活跃线程</header>
++            <p id="threads-running" class="metric-value">--</p>
++        </article>
++        <article>
++            <header>慢查询</header>
++            <p id="slow-queries" class="metric-value">--</p>
++        </article>
++        <article>
++            <header>总 QPS</header>
++            <p id="total-qps" class="metric-value">--</p>
++        </article>
++    </div>
++</section>
++
++<!-- QPS 趋势图 -->
++<section id="qps-chart-section">
++    <article>
++        <header>QPS 趋势（最近 24 小时）</header>
++        <canvas id="qpsChart"></canvas>
++    </article>
++</section>
++
++<!-- 连接数趋势图 -->
++<section id="connections-chart-section">
++    <article>
++        <header>连接数趋势（最近 24 小时）</header>
++        <canvas id="connectionsChart"></canvas>
++    </article>
++</section>
++{% endblock %}
++
++{% block scripts %}
++<!-- Chart.js -->
++<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
++
++<script>
++    // 图表实例
++    let qpsChart = null;
++    let connectionsChart = null;
++    
++    // 初始化图表
++    function initCharts() {
++        const qpsCtx = document.getElementById('qpsChart').getContext('2d');
++        qpsChart = new Chart(qpsCtx, {
++            type: 'line',
++            data: {
++                labels: [],
++                datasets: [
++                    {
++                        label: 'SELECT QPS',
++                        data: [],
++                        borderColor: '#3b82f6',
++                        tension: 0.1
++                    },
++                    {
++                        label: 'INSERT QPS',
++                        data: [],
++                        borderColor: '#22c55e',
++                        tension: 0.1
++                    },
++                    {
++                        label: 'UPDATE QPS',
++                        data: [],
++                        borderColor: '#f97316',
++                        tension: 0.1
++                    },
++                    {
++                        label: 'DELETE QPS',
++                        data: [],
++                        borderColor: '#ef4444',
++                        tension: 0.1
++                    }
++                ]
++            },
++            options: {
++                responsive: true,
++                scales: {
++                    y: {
++                        beginAtZero: true
++                    }
++                }
++            }
++        });
++        
++        const connCtx = document.getElementById('connectionsChart').getContext('2d');
++        connectionsChart = new Chart(connCtx, {
++            type: 'line',
++            data: {
++                labels: [],
++                datasets: [
++                    {
++                        label: '连接数',
++                        data: [],
++                        borderColor: '#8b5cf6',
++                        tension: 0.1
++                    },
++                    {
++                        label: '活跃线程',
++                        data: [],
++                        borderColor: '#06b6d4',
++                        tension: 0.1
++                    }
++                ]
++            },
++            options: {
++                responsive: true,
++                scales: {
++                    y: {
++                        beginAtZero: true
++                    }
++                }
++            }
++        });
++    }
++    
++    // 更新状态卡片
++    async function updateStatus() {
++        try {
++            const response = await fetch('/api/status');
++            const data = await response.json();
++            
++            document.getElementById('mysql-status').textContent = data.message;
++            document.getElementById('mysql-uptime').textContent = data.uptime;
++            document.getElementById('last-update').textContent = data.last_update || '--';
++            document.getElementById('threads-connected').textContent = data.threads_connected;
++            document.getElementById('threads-running').textContent = data.threads_running;
++            document.getElementById('slow-queries').textContent = data.slow_queries;
++            document.getElementById('total-qps').textContent = data.total_qps;
++            
++            // 处理警告横幅
++            const banner = document.getElementById('warning-banner');
++            if (!data.connected && data.last_update) {
++                banner.style.display = 'block';
++                document.getElementById('warning-message').textContent = 
++                    `MySQL 连接异常，最后成功采集时间: ${data.last_update}`;
++            } else {
++                banner.style.display = 'none';
++            }
++        } catch (error) {
++            console.error('获取状态失败:', error);
++        }
++    }
++    
++    // 更新图表
++    async function updateCharts() {
++        try {
++            const response = await fetch('/api/metrics?hours=24');
++            const data = await response.json();
++            
++            // 格式化时间标签
++            const labels = data.timestamps.map(t => {
++                const date = new Date(t);
++                return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
++            });
++            
++            // 更新 QPS 图表
++            qpsChart.data.labels = labels;
++            qpsChart.data.datasets[0].data = data.select_qps;
++            qpsChart.data.datasets[1].data = data.insert_qps;
++            qpsChart.data.datasets[2].data = data.update_qps;
++            qpsChart.data.datasets[3].data = data.delete_qps;
++            qpsChart.update();
++            
++            // 更新连接数图表
++            connectionsChart.data.labels = labels;
++            connectionsChart.data.datasets[0].data = data.threads_connected;
++            connectionsChart.data.datasets[1].data = data.threads_running;
++            connectionsChart.update();
++        } catch (error) {
++            console.error('获取指标失败:', error);
++        }
++    }
++    
++    // 页面加载后初始化
++    document.addEventListener('DOMContentLoaded', () => {
++        initCharts();
++        updateStatus();
++        updateCharts();
++        
++        // 每 60 秒刷新一次
++        setInterval(() => {
++            updateStatus();
++            updateCharts();
++        }, 60000);
++    });
++</script>
++{% endblock %}
++```
++
++- [ ] **Step 4: 运行应用验证页面**
++
++```bash
++uv run uvicorn main:app --reload
++```
++
++访问 `http://localhost:8000/` 应该能看到仪表盘页面（数据为空状态）
++
++- [ ] **Step 5: 提交代码**
++
++```bash
++git add routes/dashboard.py templates/
++git commit -m "feat: 仪表盘页面"
++```
++
++---
++
++### Task 8: 自定义样式
++
++**文件：**
++- 创建：`static/css/custom.css`
++
++- [ ] **Step 1: 创建 custom.css**
++
++```css
++/* static/css/custom.css */
++
++/* 指标数值样式 */
++.metric-value {
++    font-size: 2rem;
++    font-weight: bold;
++    text-align: center;
++    margin: 0;
++}
++
++/* 警告横幅 */
++.warning-banner article {
++    background-color: #fef3c7;
++    border-left: 4px solid #f59e0b;
++}
++
++/* 暗色主题下的警告横幅 */
++[data-theme="dark"] .warning-banner article {
++    background-color: #451a03;
++    border-left-color: #f59e0b;
++}
++
++/* 图表容器 */
++canvas {
++    max-height: 300px;
++}
++
++/* 状态卡片网格 */
++.grid article {
++    margin-bottom: 0;
++}
++
++/* 响应式调整 */
++@media (max-width: 768px) {
++    .metric-value {
++        font-size: 1.5rem;
++    }
++}
++```
++
++- [ ] **Step 2: 提交代码**
++
++```bash
++git add static/
++git commit -m "feat: 自定义样式"
++```
++
++---
++
++### Task 9: 创建 .env 文件并测试完整流程
++
++**文件：**
++- 创建：`.env`
++
++- [ ] **Step 1: 创建 .env 文件**
++
++```env
++# MySQL 连接配置
++MYSQL_HOST=localhost
++MYSQL_PORT=3306
++MYSQL_USER=monitor
++MYSQL_PASSWORD=your_password
++MYSQL_DATABASE=mysql
++
++# 监控配置
++COLLECT_INTERVAL=60
++RETENTION_DAYS=30
++```
++
++- [ ] **Step 2: 启动应用测试完整流程**
++
++```bash
++uv run uvicorn main:app --reload
++```
++
++预期行为：
++1. 应用启动，自动创建 `data/monitor.db`
++2. 尝试连接 MySQL（会失败，因为没有真实的 MySQL）
++3. 访问 `http://localhost:8000/` 看到空状态仪表盘
++4. 查看日志中的采集失败信息
++
++- [ ] **Step 3: 运行所有测试**
++
++```bash
++uv run pytest tests/ -v
++```
++
++预期输出：所有测试通过
++
++- [ ] **Step 4: 最终提交**
++
++```bash
++git add .env
++git commit -m "feat: 完成 MVP 版本"
++```
++
++---
++
++## 自检清单
++
++- [x] **规格覆盖**：所有规格要求都有对应任务
++- [x] **占位符扫描**：无 TBD、TODO 或模糊要求
++- [x] **类型一致性**：函数名、参数类型在整个计划中保持一致
++- [x] **代码完整性**：每个步骤都包含完整代码
++- [x] **测试覆盖**：每个核心模块都有测试
++
++---
++
++## 执行选项
++
++计划已完成并保存到 `docs/superpowers/plans/2026-07-07-atlas-mysql-monitor.md`。
++
++**两种执行方式：**
++
++**1. 子智能体驱动（推荐）** - 每个任务派发一个新的子智能体，任务间有审查，迭代快
++
++**2. 内置执行** - 在当前会话中使用 executing-plans 执行任务，批量执行带检查点
++
++**你选择哪种方式？**
+diff --git a/docs/superpowers/specs/2026-07-07-atlas-mysql-monitor-design.md b/docs/superpowers/specs/2026-07-07-atlas-mysql-monitor-design.md
+new file mode 100644
+index 0000000..8953b03
+--- /dev/null
++++ b/docs/superpowers/specs/2026-07-07-atlas-mysql-monitor-design.md
+@@ -0,0 +1,253 @@
++# Atlas MySQL Monitor — 设计文档
++
++## 项目概述
++
++基于 FastAPI 的 MySQL 监控工具，做简单的指标统计。采用服务端渲染 Web 架构，SQLite 存储数据。不追求 Prometheus 级别的能力，专注基础状态监控。
++
++## 需求总结
++
++- **监控范围**：基础 MySQL 状态（连接数、QPS、慢查询、运行时间）
++- **采集方式**：后端定时采集，每分钟一次（可配置）
++- **监控实例**：单实例
++- **数据保留**：可配置天数（默认 30 天）
++- **告警能力**：暂不做，先做 MVP
++- **前端风格**：简约、高级感，Classless CSS（Pico.css）+ Chart.js
++- **主题模式**：双主题切换（亮色/暗色）
++
++---
++
++## 架构设计
++
++### 目录结构
++
++```
++atlas-mysql-monitor/
++├── main.py                 # FastAPI 应用入口、lifespan 事件
++├── config.py               # 配置管理（从 .env 读取）
++├── database.py             # SQLite 数据库初始化与连接管理
++├── collectors/
++│   └── mysql_collector.py  # MySQL 指标采集器
++├── models/
++│   └── metrics.py          # 指标数据模型与 CRUD 操作
++├── routes/
++│   ├── dashboard.py        # 仪表盘页面路由
++│   └── api.py              # 图表数据 API（JSON）
++├── templates/
++│   ├── base.html           # 基础布局模板
++│   ├── dashboard.html      # 仪表盘页面
++│   └── partials/           # 可复用模板片段
++├── static/
++│   └── css/
++│       └── custom.css      # 自定义样式（与 Pico.css 配合）
++├── data/
++│   └── monitor.db          # SQLite 数据库文件（运行时生成）
++├── pyproject.toml
++├── .env                    # MySQL 连接配置、采集间隔、保留天数
++└── .env.example
++```
++
++### 模块职责
++
++- **main.py**：创建 FastAPI 实例、注册路由、在 lifespan 中启动/停止后台采集任务
++- **config.py**：用 pydantic-settings 管理配置（MySQL 连接、采集间隔、保留天数）
++- **database.py**：SQLite 异步连接管理、建表
++- **collectors/mysql_collector.py**：用 `aiomysql` 连接 MySQL 执行 `SHOW GLOBAL STATUS` 采集指标
++- **models/metrics.py**：指标的写入、查询、清理逻辑
++- **routes/api.py**：返回 JSON 数据给 Chart.js
++- **routes/dashboard.py**：返回 Jinja2 渲染的 HTML 页面
++
++### 技术栈
++
++- **框架**：FastAPI
++- **服务器**：Uvicorn（ASGI）
++- **包管理器**：uv
++- **Python**：>=3.12
++- **数据库**：SQLite（通过 `aiosqlite`）
++- **MySQL 客户端**：`aiomysql`
++- **模板引擎**：Jinja2
++- **CSS 框架**：Pico.css（classless）
++- **图表库**：Chart.js（CDN）
++- **配置管理**：pydantic-settings
++
++---
++
++## 数据库设计
++
++### 表结构：`mysql_metrics`
++
++```sql
++CREATE TABLE mysql_metrics (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    timestamp DATETIME NOT NULL DEFAULT (datetime('now', 'localtime')),
++    -- 基础状态
++    threads_connected INTEGER,   -- 当前连接数
++    threads_running INTEGER,     -- 活跃线程数
++    uptime INTEGER,              -- MySQL 运行时间（秒）
++    slow_queries INTEGER,        -- 慢查询总数（Com_slow_queries）
++    -- CRUD 计数（绝对值，用于计算 QPS）
++    com_select INTEGER,
++    com_insert INTEGER,
++    com_update INTEGER,
++    com_delete INTEGER,
++    -- 派生指标（采集时计算）
++    select_qps REAL,
++    insert_qps REAL,
++    update_qps REAL,
++    delete_qps REAL
++);
++
++CREATE INDEX idx_timestamp ON mysql_metrics(timestamp);
++```
++
++### QPS 计算方式
++
++- 采集 `SHOW GLOBAL STATUS` 中的 `Com_select`、`Com_insert`、`Com_update`、`Com_delete` 绝对值
++- 与上一条记录做差，除以采集间隔秒数，分别得到四类 QPS
++- 首次采集时无上一条记录，QPS 字段存 NULL
++
++### 数据清理
++
++- 应用启动时执行一次清理，删除超过 `RETENTION_DAYS` 的旧数据
++- 默认保留 30 天，可通过 `.env` 配置
++
++---
++
++## 后台采集机制
++
++### 启动流程（FastAPI lifespan）
++
++```
++应用启动
++  → 初始化 SQLite 数据库（建表 + 清理过期数据）
++  → 启动后台采集协程
++  → 应用就绪，开始处理请求
++
++应用关闭
++  → 取消后台采集协程
++  → 关闭数据库连接
++```
++
++### 采集协程逻辑
++
++```python
++async def collect_loop():
++    while True:
++        try:
++            # 1. 连接 MySQL，执行 SHOW GLOBAL STATUS
++            # 2. 读取上一条记录，计算各类 QPS
++            # 3. 写入 SQLite
++        except Exception as e:
++            logger.error(f"采集失败: {e}")
++        await asyncio.sleep(config.COLLECT_INTERVAL)
++```
++
++### 关键设计点
++
++- 使用 `asyncio.create_task` 在 lifespan 中启动，lifespan 结束时自动取消
++- 采集失败只记录日志，不影响应用运行
++- MySQL 连接使用连接池（aiomysql），避免每次采集都重新建连
++- 首次采集时没有上一条记录，QPS 字段存 NULL
++- 采集间隔从 `.env` 配置文件读取，启动后修改需重启应用
++
++---
++
++## Web UI 设计
++
++### 页面布局
++
++```
++┌─────────────────────────────────────────────────┐
++│  Atlas MySQL Monitor          [🌙/☀️] 主题切换  │
++├─────────────────────────────────────────────────┤
++│  ● MySQL 运行中  │  运行时间: 15d 3h  │  最后采集: 14:32  │
++├─────────────────────────────────────────────────┤
++│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │
++│  │ 连接数   │ │ 活跃线程 │ │ 慢查询   │ │ 总 QPS   │  │
++│  │   12     │ │    3     │ │    5     │ │  156.2   │  │
++│  └──────────┘ └──────────┘ └──────────┘ └──────────┘  │
++├─────────────────────────────────────────────────┤
++│  QPS 趋势图（Chart.js 折线图，最近 24 小时）       │
++│  - SELECT QPS（蓝色）                              │
++│  - INSERT QPS（绿色）                              │
++│  - UPDATE QPS（橙色）                              │
++│  - DELETE QPS（红色）                              │
++├─────────────────────────────────────────────────┤
++│  连接数趋势图（Chart.js 折线图，最近 24 小时）      │
++│  - threads_connected（紫色）                       │
++│  - threads_running（青色）                         │
++└─────────────────────────────────────────────────┘
++```
++
++### 技术实现
++
++- **CSS 框架**：Pico.css（classless，自动美化语义化标签）
++- **图表库**：Chart.js（CDN 引入）
++- **主题切换**：`<html data-theme="dark/light">` + Pico.css 内置主题支持 + 少量 JS 切换逻辑
++- **数据更新**：前端定时 AJAX 请求（默认 60 秒）
++
++### API 接口
++
++- `GET /api/metrics?hours=24` — 返回最近 N 小时的指标数据（JSON 数组）
++- `GET /api/status` — 返回最新一条指标（用于顶部卡片）
++
++---
++
++## 配置管理
++
++### .env 文件
++
++```env
++# MySQL 连接配置
++MYSQL_HOST=localhost
++MYSQL_PORT=3306
++MYSQL_USER=monitor
++MYSQL_PASSWORD=your_password
++MYSQL_DATABASE=mysql
++
++# 监控配置
++COLLECT_INTERVAL=60        # 采集间隔（秒），默认 60
++RETENTION_DAYS=30          # 数据保留天数，默认 30
++```
++
++### 配置加载
++
++使用 `pydantic-settings` 的 `BaseSettings` 类，自动从 `.env` 文件和环境变量读取配置。
++
++---
++
++## 错误处理
++
++### MySQL 连接失败
++
++- 采集时连接失败：记录日志，跳过本次采集，等待下次
++- 连续失败 3 次：在仪表盘顶部显示警告横幅（"MySQL 连接异常，最后成功采集时间: ..."）
++- 连续失败计数在内存中维护（应用重启后重置），每次采集成功后归零
++- 恢复后自动消除警告
++
++### 首次启动（无数据）
++
++- 仪表盘显示空状态提示："等待首次数据采集..."
++- QPS 字段显示为 "--"
++
++### SQLite 文件不存在
++
++- 启动时自动创建 `data/` 目录和 `monitor.db` 文件
++- 自动建表，无需手动初始化
++
++### 页面刷新失败
++
++- 前端 AJAX 请求失败时，在图表区域显示 "数据加载失败，请刷新页面"
++
++---
++
++## 依赖清单
++
++```
++fastapi>=0.139.0
++uvicorn>=0.50.2
++aiosqlite>=0.20.0
++aiomysql>=0.2.0
++pydantic-settings>=2.0.0
++jinja2>=3.1.0
++python-dotenv>=1.0.0
++```

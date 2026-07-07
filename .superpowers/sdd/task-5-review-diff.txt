@@ -1,0 +1,183 @@
+commit 414b55cd95263f463a31310d94f916ea9c3e1ec8
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Tue Jul 7 23:59:04 2026 +0800
+
+    feat: FastAPI 主应用与后台采集任务
+
+ main.py             | 122 +++++++++++++++++++++++++++++++++++++++++++++++++---
+ routes/__init__.py  |   1 +
+ routes/api.py       |   5 +++
+ routes/dashboard.py |   5 +++
+ static/.gitkeep     |   0
+ 5 files changed, 126 insertions(+), 7 deletions(-)
+commit 414b55cd95263f463a31310d94f916ea9c3e1ec8
+Author: Ezzi <xingyuan_guo@outlook.com>
+Date:   Tue Jul 7 23:59:04 2026 +0800
+
+    feat: FastAPI 主应用与后台采集任务
+
+diff --git a/main.py b/main.py
+index 6d7c6d9..384035d 100644
+--- a/main.py
++++ b/main.py
+@@ -1,13 +1,121 @@
++# main.py
++import asyncio
++import logging
++from contextlib import asynccontextmanager
+ from fastapi import FastAPI
++from fastapi.staticfiles import StaticFiles
+ 
+-app = FastAPI()
++from config import config
++from database import init_db, DEFAULT_DB_PATH
++from models.metrics import save_metrics, get_latest_metrics, cleanup_old_metrics
++from collectors.mysql_collector import MySQLCollector
++from routes import dashboard, api
+ 
++logging.basicConfig(level=logging.INFO)
++logger = logging.getLogger(__name__)
+ 
+-@app.get("/")
+-async def root():
+-    return {"message": "Hello World"}
++# 全局状态
++collector: MySQLCollector = None
++collect_task: asyncio.Task = None
++consecutive_failures: int = 0
++last_success_time: str = None
+ 
+ 
+-@app.get("/hello/{name}")
+-async def say_hello(name: str):
+-    return {"message": f"Hello {name}"}
++async def collect_loop():
++    """后台采集循环"""
++    global consecutive_failures, last_success_time
++
++    previous_metrics = None
++
++    while True:
++        try:
++            # 采集当前指标
++            current_metrics = await collector.collect()
++
++            # 计算 QPS
++            if previous_metrics:
++                qps = collector._calculate_qps(
++                    current_metrics,
++                    previous_metrics,
++                    config.COLLECT_INTERVAL
++                )
++                current_metrics.update(qps)
++            else:
++                # 首次采集，QPS 为 None
++                current_metrics.update({
++                    "select_qps": None,
++                    "insert_qps": None,
++                    "update_qps": None,
++                    "delete_qps": None,
++                })
++
++            # 保存到数据库
++            await save_metrics(str(DEFAULT_DB_PATH), current_metrics)
++
++            # 更新状态
++            previous_metrics = current_metrics
++            consecutive_failures = 0
++            last_success_time = current_metrics.get("timestamp")
++
++            logger.info("指标采集成功")
++
++        except Exception as e:
++            consecutive_failures += 1
++            logger.error(f"采集失败（连续失败 {consecutive_failures} 次）: {e}")
++
++        await asyncio.sleep(config.COLLECT_INTERVAL)
++
++
++@asynccontextmanager
++async def lifespan(app: FastAPI):
++    """应用生命周期管理"""
++    global collector, collect_task
++
++    # 启动时初始化
++    logger.info("正在初始化数据库...")
++    await init_db()
++
++    # 清理过期数据
++    deleted = await cleanup_old_metrics(str(DEFAULT_DB_PATH), config.RETENTION_DAYS)
++    if deleted > 0:
++        logger.info(f"已清理 {deleted} 条过期数据")
++
++    # 创建采集器
++    logger.info("正在连接 MySQL...")
++    collector = MySQLCollector(config)
++
++    # 启动后台采集任务
++    logger.info(f"启动后台采集任务（间隔 {config.COLLECT_INTERVAL} 秒）...")
++    collect_task = asyncio.create_task(collect_loop())
++
++    yield
++
++    # 关闭时清理
++    if collect_task:
++        collect_task.cancel()
++        try:
++            await collect_task
++        except asyncio.CancelledError:
++            pass
++
++    if collector:
++        await collector.close()
++
++    logger.info("应用已关闭")
++
++
++# 创建 FastAPI 应用
++app = FastAPI(title="Atlas MySQL Monitor", lifespan=lifespan)
++
++# 挂载静态文件
++app.mount("/static", StaticFiles(directory="static"), name="static")
++
++# 注册路由
++app.include_router(dashboard.router)
++app.include_router(api.router)
++
++
++@app.get("/health")
++async def health():
++    """健康检查"""
++    return {"status": "ok"}
+diff --git a/routes/__init__.py b/routes/__init__.py
+new file mode 100644
+index 0000000..5bdc97e
+--- /dev/null
++++ b/routes/__init__.py
+@@ -0,0 +1 @@
++# routes 包初始化
+diff --git a/routes/api.py b/routes/api.py
+new file mode 100644
+index 0000000..41f9f08
+--- /dev/null
++++ b/routes/api.py
+@@ -0,0 +1,5 @@
++# routes/api.py
++# API 路由 - 将在后续任务中实现
++from fastapi import APIRouter
++
++router = APIRouter()
+diff --git a/routes/dashboard.py b/routes/dashboard.py
+new file mode 100644
+index 0000000..2edec30
+--- /dev/null
++++ b/routes/dashboard.py
+@@ -0,0 +1,5 @@
++# routes/dashboard.py
++# Dashboard 路由 - 将在后续任务中实现
++from fastapi import APIRouter
++
++router = APIRouter()
+diff --git a/static/.gitkeep b/static/.gitkeep
+new file mode 100644
+index 0000000..e69de29
